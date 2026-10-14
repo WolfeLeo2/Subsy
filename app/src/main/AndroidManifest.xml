@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Charge detection, opt-in from Settings: incoming SMS only, no inbox reading (no READ_SMS). -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
     <application
         android:name=".SubsyApplication"
@@ -28,6 +30,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Charge detection. Both stay idle until the user opts in and grants access in Settings. -->
+        <receiver
+            android:name=".detection.SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".detection.BankNotificationListener"
+            android:exported="true"
+            android:label="@string/detection_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

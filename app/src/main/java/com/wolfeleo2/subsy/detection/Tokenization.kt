@@ -54,15 +54,22 @@ fun encodeForModel(
 
 /**
  * gliner2's WhitespaceTokenSplitter: URLs, emails and @handles stay whole, hyphen or underscore runs stay one word
- * ("2547****013-MOSES" is one word), any other non-space character is its own word. Python's `\w` plus every
- * combining mark is `[\p{L}\p{N}\p{M}_]` here.
+ * ("2547****304-JOHN" is one word), any other non-space character is its own word.
+ *
+ * Every class is spelled out so desktop Java (the JVM tests) and Android's ICU engine read it the same way: Android
+ * rejects UNICODE_CHARACTER_CLASS, and without it `\s` means ASCII on the JVM but Unicode on Android. [SPACE] is
+ * Python's `str.isspace()` set, which is what `\s` matches in the Python reference. [WORD] is Python's `\w` plus
+ * every combining mark, as gliner2 builds it.
  */
 object WordSplitter {
-    private const val WORD = """[\p{L}\p{N}\p{M}_‌‍]"""
+    private const val SPACE = """\t\n\u000B\f\r\u001C-\u001F \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000"""
+    private const val NON_SPACE = "[^$SPACE]"
+    private const val WORD = """[\p{L}\p{N}\p{M}_\u200C\u200D]"""
     private val pattern =
         Pattern.compile(
-            """(?:https?://\S+|www\.\S+)|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|@[a-z0-9_]+|$WORD+(?:[-_]$WORD+)*|\S""",
-            Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE or Pattern.UNICODE_CHARACTER_CLASS,
+            "(?:https?://$NON_SPACE+|www\\.$NON_SPACE+)|[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}|@[a-z0-9_]+" +
+                "|$WORD+(?:[-_]$WORD+)*|$NON_SPACE",
+            Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE,
         )
 
     fun split(text: String): List<Word> {

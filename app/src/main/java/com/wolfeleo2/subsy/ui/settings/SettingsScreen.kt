@@ -1,6 +1,14 @@
 package com.wolfeleo2.subsy.ui.settings
 
+import android.Manifest
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.provider.Settings
 import android.text.format.Formatter
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,14 +36,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wolfeleo2.subsy.R
 import com.wolfeleo2.subsy.data.model.AppMode
@@ -43,6 +56,7 @@ import com.wolfeleo2.subsy.data.model.ThemeMode
 import com.wolfeleo2.subsy.data.model.convertTo
 import com.wolfeleo2.subsy.data.repository.ExchangeRates
 import com.wolfeleo2.subsy.data.repository.UserSettings
+import com.wolfeleo2.subsy.detection.BankNotificationListener
 import com.wolfeleo2.subsy.detection.DetectorRelease
 import com.wolfeleo2.subsy.detection.DetectorState
 import com.wolfeleo2.subsy.ui.components.BudgetDialog
@@ -71,6 +85,7 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val rates by viewModel.exchangeRates.collectAsStateWithLifecycle()
     val detectorState by viewModel.detectorState.collectAsStateWithLifecycle()
+    val spottedCount by viewModel.spottedCount.collectAsStateWithLifecycle()
 
     val current = settings
     if (current == null) {
@@ -88,6 +103,7 @@ fun SettingsScreen(
         onSetUseDynamicColor = viewModel::setUseDynamicColor,
         onSetThemeMode = viewModel::setThemeMode,
         detectorState = detectorState,
+        spottedCount = spottedCount,
         onSetDetectionEnabled = viewModel::setDetectionEnabled,
         onNavigateBack = onNavigateBack,
         onOpenCategories = onOpenCategories,
@@ -107,12 +123,22 @@ fun SettingsContent(
     onSetUseDynamicColor: (Boolean) -> Unit,
     onSetThemeMode: (ThemeMode) -> Unit,
     detectorState: DetectorState,
+    spottedCount: Int,
     onSetDetectionEnabled: (Boolean) -> Unit,
     onNavigateBack: () -> Unit,
     onOpenCategories: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    // Both are granted outside this screen (a system dialog, or Android's settings), so re-check on every resume.
+    var smsAllowed by remember { mutableStateOf(hasSmsAccess(context)) }
+    var notificationsAllowed by remember { mutableStateOf(hasNotificationAccess(context)) }
+    LifecycleResumeEffect(Unit) {
+        smsAllowed = hasSmsAccess(context)
+        notificationsAllowed = hasNotificationAccess(context)
+        onPauseOrDispose {}
+    }
+    val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { smsAllowed = it }
     var showCurrencyPicker by rememberSaveable { mutableStateOf(false) }
     var showModePicker by rememberSaveable { mutableStateOf(false) }
     var showBudgetEditor by rememberSaveable { mutableStateOf(false) }
@@ -238,11 +264,33 @@ fun SettingsContent(
                 SegmentedListItem(
                     checked = settings.detectionEnabled,
                     onCheckedChange = onSetDetectionEnabled,
-                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
-                    supportingContent = { Text(detectionStatus(settings.detectionEnabled, detectorState)) },
+                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = if (settings.detectionEnabled) 3 else 1),
+                    supportingContent = { Text(detectionStatus(settings.detectionEnabled, detectorState, spottedCount)) },
                     trailingContent = { Switch(checked = settings.detectionEnabled, onCheckedChange = null) },
                 ) {
                     Text(stringResource(R.string.detection_switch))
+                }
+            }
+            if (settings.detectionEnabled) {
+                item {
+                    SegmentedListItem(
+                        onClick = { if (!smsAllowed) smsPermission.launch(Manifest.permission.RECEIVE_SMS) },
+                        shapes = ListItemDefaults.segmentedShapes(index = 1, count = 3),
+                        supportingContent = { Text(stringResource(R.string.detection_sms_supporting)) },
+                        trailingContent = { Text(accessLabel(smsAllowed)) },
+                    ) {
+                        Text(stringResource(R.string.detection_sms))
+                    }
+                }
+                item {
+                    SegmentedListItem(
+                        onClick = { if (!notificationsAllowed) openNotificationAccess(context) },
+                        shapes = ListItemDefaults.segmentedShapes(index = 2, count = 3),
+                        supportingContent = { Text(stringResource(R.string.detection_notifications_supporting)) },
+                        trailingContent = { Text(accessLabel(notificationsAllowed)) },
+                    ) {
+                        Text(stringResource(R.string.detection_notifications))
+                    }
                 }
             }
             item { SectionHeader(stringResource(R.string.settings_section_appearance)) }
@@ -421,16 +469,36 @@ private fun ThemePickerDialog(
 private fun detectionStatus(
     enabled: Boolean,
     state: DetectorState,
+    spottedCount: Int,
 ): String {
     val size = Formatter.formatShortFileSize(LocalContext.current, DetectorRelease.totalBytes)
     return when {
         !enabled -> stringResource(R.string.detection_off, size)
         state is DetectorState.Downloading ->
             stringResource(R.string.detection_downloading, (state.doneBytes * 100 / DetectorRelease.totalBytes).toInt())
-        state == DetectorState.Ready -> stringResource(R.string.detection_ready)
+        state == DetectorState.Ready -> pluralStringResource(R.plurals.detection_ready, spottedCount, spottedCount)
         state == DetectorState.Failed -> stringResource(R.string.detection_failed)
         else -> stringResource(R.string.detection_waiting)
     }
+}
+
+@Composable
+private fun accessLabel(allowed: Boolean): String =
+    stringResource(if (allowed) R.string.detection_access_allowed else R.string.detection_access_needed)
+
+private fun hasSmsAccess(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+
+private fun hasNotificationAccess(context: Context): Boolean =
+    NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
+
+/** Android's own page for Subsy's notification access; apps can't grant it themselves. */
+private fun openNotificationAccess(context: Context) {
+    val component = ComponentName(context, BankNotificationListener::class.java).flattenToString()
+    context.startActivity(
+        Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
+            .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, component),
+    )
 }
 
 private fun currencyName(code: String): String =
@@ -458,6 +526,7 @@ fun SettingsScreenPreview() {
             onSetUseDynamicColor = {},
             onSetThemeMode = {},
             detectorState = DetectorState.Absent,
+            spottedCount = 0,
             onSetDetectionEnabled = {},
             onNavigateBack = {},
             onOpenCategories = {},

@@ -93,6 +93,27 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate4To5KeepsDetectionsAndDefaultsTheNewColumns() {
+        helper.createDatabase(TEST_DB, 4).apply {
+            execSQL(
+                "INSERT INTO detected_transactions (id, merchant_name, amount, raw_message, source, detected_at, is_processed) " +
+                    "VALUES ('d1', 'Netflix', 1100.0, 'Ksh1,100.00 sent to NETFLIX', 'SMS', 1000, 0)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 5, true)
+
+        db.query("SELECT amount, currency, kind, reference FROM detected_transactions").use {
+            it.moveToFirst()
+            assertEquals(1100.0, it.getDouble(0), 0.001)
+            assertEquals("", it.getString(1))
+            assertEquals("EXPENSE", it.getString(2))
+            assertEquals(true, it.isNull(3))
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

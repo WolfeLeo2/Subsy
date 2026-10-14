@@ -52,9 +52,11 @@ Read bank and mobile money messages (SMS and app notifications) on the phone and
 | Model choice, training, eval | Done: `eval/` |
 | Export to ONNX and proof of equivalence | Done: `eval/reference.py`, `eval/unigram.py` |
 | Kotlin port (split, tokenize, decode, ONNX wrapper) | Done: `app/.../detection/`, JVM tests pass |
-| Model download (`ModelRepository`, `ModelDownloadWorker`) and the Settings opt-in switch | Built; release assets for `detector-v1` must be published |
-| `ChargeModel` running on a phone | `ChargeModelDeviceTest` written, **not yet run on a device** |
-| SMS receiver, notification listener, guards, Room v5, confirm card, onboarding | Not started; planned below |
+| Model download (`ModelRepository`, `ModelDownloadWorker`) and the Settings opt-in switch | Built; release `detector-v1` published |
+| `ChargeModel` running on a phone | Checked 2026-10-14 on an S22: 0/47 fixtures differ, 1.4 s load, 82 ms per message |
+| Capture: `SmsReceiver`, `BankNotificationListener`, pre-filter (`looksLikeMoney`), `DetectionWorker`, `ChargeGuards`, de-duplication, Room v5 | Built, unit-tested; not yet tried with live messages |
+| Settings access rows (SMS permission, notification access) and "N charges spotted" | Built |
+| Confirm card and notification, logging through `BillingLedger`, merchant memory, own-account rule, onboarding | Not started |
 
 ### Why a small fine-tuned model, not rules and not an LLM
 The user wanted detection that works outside Kenya without per-country rules, tells money in from money out, and suggests categories. Every candidate was scored by the same eval (`eval/run_eval.py`) on 42 messages: 14 real Kenyan SMS plus 28 synthetic ones, including other countries and non-money texts. The pass bar was kind ≥ 90%, exact amount ≥ 95% and zero false positives.
@@ -94,7 +96,7 @@ flowchart TD
     O -- Ignore --> Q[marked processed]
 ```
 
-Steps D to J are built (`detection/`). The rest is planned.
+Everything up to storing in `detected_transactions` is built. The card, notification and logging are planned.
 
 ### The model files: one export, never mixed
 `eval/reference.py` writes these together, and they only work together:

@@ -16,6 +16,20 @@ interface TransactionDetectorRepository {
 
     fun getAllTransactions(): Flow<List<DetectedTransaction>>
 
+    /** How many charges detection has stored, processed or not. */
+    fun count(): Flow<Int>
+
+    /**
+     * Whether this charge is already stored: the same reference, or (without one) the same amount and currency within
+     * [DUPLICATE_WINDOW_MS]. Banks often report one charge by SMS and by app notification, and SMS can arrive twice.
+     */
+    suspend fun isDuplicate(
+        reference: String?,
+        amount: Double,
+        currency: String,
+        at: Long,
+    ): Boolean
+
     suspend fun recordDetectedTransaction(transaction: DetectedTransaction)
 
     suspend fun confirmTransaction(
@@ -41,6 +55,20 @@ class DefaultTransactionDetectorRepository(
     override fun getAllTransactions(): Flow<List<DetectedTransaction>> =
         detectedTransactionDao.getAllTransactions().map { entities ->
             entities.map { it.toDomain() }
+        }
+
+    override fun count(): Flow<Int> = detectedTransactionDao.countAll()
+
+    override suspend fun isDuplicate(
+        reference: String?,
+        amount: Double,
+        currency: String,
+        at: Long,
+    ): Boolean =
+        if (reference != null) {
+            detectedTransactionDao.hasReference(reference)
+        } else {
+            detectedTransactionDao.hasSimilar(amount, currency, at - DUPLICATE_WINDOW_MS, at + DUPLICATE_WINDOW_MS)
         }
 
     override suspend fun recordDetectedTransaction(transaction: DetectedTransaction) {
@@ -75,3 +103,5 @@ class DefaultTransactionDetectorRepository(
         detectedTransactionDao.clearProcessedTransactions()
     }
 }
+
+const val DUPLICATE_WINDOW_MS = 10 * 60 * 1000L

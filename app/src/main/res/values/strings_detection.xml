@@ -7,6 +7,18 @@
     <string name="detection_waiting">Waiting for Wi-Fi to download</string>
     <!-- %1$d percent downloaded -->
     <string name="detection_downloading">Downloading, %1$d%%</string>
-    <string name="detection_ready">Downloaded. Messages never leave this phone.</string>
+    <!-- %1$d charges stored by detection so far -->
+    <plurals name="detection_ready">
+        <item quantity="one">Ready. %1$d charge spotted so far. Messages never leave this phone.</item>
+        <item quantity="other">Ready. %1$d charges spotted so far. Messages never leave this phone.</item>
+    </plurals>
     <string name="detection_failed">Download failed. Turn it off and on to try again.</string>
+    <string name="detection_sms">Text messages</string>
+    <string name="detection_sms_supporting">Bank and M-Pesa SMS, read as they arrive</string>
+    <string name="detection_notifications">Bank app notifications</string>
+    <string name="detection_notifications_supporting">Alerts from banking and wallet apps</string>
+    <string name="detection_access_allowed">Allowed</string>
+    <string name="detection_access_needed">Tap to allow</string>
+    <!-- Shown in Android's notification access settings -->
+    <string name="detection_listener_label">Subsy charge detection</string>
 </resources>

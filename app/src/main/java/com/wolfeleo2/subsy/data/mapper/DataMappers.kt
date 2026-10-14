@@ -8,6 +8,7 @@ import com.wolfeleo2.subsy.data.local.entity.TransactionEntity
 import com.wolfeleo2.subsy.data.model.BillingCycle
 import com.wolfeleo2.subsy.data.model.Category
 import com.wolfeleo2.subsy.data.model.CustomCategory
+import com.wolfeleo2.subsy.data.model.DetectedKind
 import com.wolfeleo2.subsy.data.model.DetectedTransaction
 import com.wolfeleo2.subsy.data.model.PaymentRecord
 import com.wolfeleo2.subsy.data.model.PaymentStatus
@@ -86,6 +87,11 @@ fun DetectedTransactionEntity.toDomain(): DetectedTransaction =
         source = TransactionSource.fromString(source),
         detectedAt = detectedAt,
         isProcessed = isProcessed,
+        currency = currency,
+        kind = DetectedKind.fromString(kind),
+        reference = reference,
+        categoryKey = categoryKey,
+        sender = sender,
     )
 
 fun DetectedTransaction.toEntity(): DetectedTransactionEntity =
@@ -97,6 +103,11 @@ fun DetectedTransaction.toEntity(): DetectedTransactionEntity =
         source = source.name,
         detectedAt = detectedAt,
         isProcessed = isProcessed,
+        currency = currency,
+        kind = kind.name,
+        reference = reference,
+        categoryKey = categoryKey,
+        sender = sender,
     )
 
 fun TransactionEntity.toDomain(): Transaction =

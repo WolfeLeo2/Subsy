@@ -16,11 +16,13 @@ import com.wolfeleo2.subsy.data.repository.DefaultBudgetRepository
 import com.wolfeleo2.subsy.data.repository.DefaultCategoryRepository
 import com.wolfeleo2.subsy.data.repository.DefaultPaymentRecordRepository
 import com.wolfeleo2.subsy.data.repository.DefaultSubscriptionRepository
+import com.wolfeleo2.subsy.data.repository.DefaultTransactionDetectorRepository
 import com.wolfeleo2.subsy.data.repository.DefaultTransactionRepository
 import com.wolfeleo2.subsy.data.repository.ExchangeRateRepository
 import com.wolfeleo2.subsy.data.repository.PaymentRecordRepository
 import com.wolfeleo2.subsy.data.repository.SettingsRepository
 import com.wolfeleo2.subsy.data.repository.SubscriptionRepository
+import com.wolfeleo2.subsy.data.repository.TransactionDetectorRepository
 import com.wolfeleo2.subsy.data.repository.TransactionRepository
 import com.wolfeleo2.subsy.detection.ModelRepository
 import com.wolfeleo2.subsy.worker.DailyWorker
@@ -38,6 +40,9 @@ class SubsyApplication :
     val settingsRepository by lazy { SettingsRepository(this) }
     val exchangeRateRepository by lazy { ExchangeRateRepository(filesDir.resolve("exchange_rates.json")) }
     val modelRepository by lazy { ModelRepository(this) }
+    val detectorRepository: TransactionDetectorRepository by lazy {
+        DefaultTransactionDetectorRepository(database.detectedTransactionDao(), database.paymentRecordDao())
+    }
 
     override fun onCreate() {
         super.onCreate()

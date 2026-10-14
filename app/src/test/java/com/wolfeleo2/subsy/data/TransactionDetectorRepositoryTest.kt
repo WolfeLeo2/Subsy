@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -60,6 +61,17 @@ class TransactionDetectorRepositoryTest {
             toRemove.forEach { storage.remove(it) }
             emit()
         }
+
+        override fun countAll(): Flow<Int> = flow.map { it.size }
+
+        override suspend fun hasReference(reference: String): Boolean = storage.values.any { it.reference == reference }
+
+        override suspend fun hasSimilar(
+            amount: Double,
+            currency: String,
+            from: Long,
+            to: Long,
+        ): Boolean = storage.values.any { it.amount == amount && it.currency == currency && it.detectedAt in from..to }
     }
 
     private class FakePaymentRecordDao : PaymentRecordDao {
@@ -152,6 +164,28 @@ class TransactionDetectorRepositoryTest {
             // Transaction marked as processed
             val unprocessed = repository.getUnprocessedTransactions().first()
             assertTrue(unprocessed.isEmpty())
+        }
+
+    @Test
+    fun sameReferenceOrSameAmountSoonAfterIsADuplicate() =
+        runTest {
+            repository.recordDetectedTransaction(
+                DetectedTransaction(
+                    id = "sms",
+                    merchantName = "NETFLIX.COM",
+                    amount = 1100.0,
+                    rawMessage = "UJE1NB2XYZ Confirmed. Ksh1,100.00 sent to M-PESA CARD for account NETFLIX.COM",
+                    source = TransactionSource.SMS,
+                    detectedAt = 0L,
+                    currency = "KES",
+                    reference = "UJE1NB2XYZ",
+                ),
+            )
+            assertTrue(repository.isDuplicate("UJE1NB2XYZ", 1100.0, "KES", 3_600_000L))
+            assertFalse(repository.isDuplicate("OTHERREF01", 1100.0, "KES", 60_000L))
+            assertTrue(repository.isDuplicate(null, 1100.0, "KES", 9 * 60_000L))
+            assertFalse(repository.isDuplicate(null, 1100.0, "KES", 11 * 60_000L))
+            assertFalse(repository.isDuplicate(null, 1100.0, "USD", 60_000L))
         }
 
     @Test

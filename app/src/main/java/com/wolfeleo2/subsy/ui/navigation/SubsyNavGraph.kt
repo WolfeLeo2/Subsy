@@ -358,7 +358,13 @@ private fun SubsyNavHost(
             SettingsScreen(
                 viewModel =
                     viewModel(
-                        factory = SettingsViewModel.Factory(app.settingsRepository, app.exchangeRateRepository.rates, app.modelRepository),
+                        factory =
+                            SettingsViewModel.Factory(
+                                app.settingsRepository,
+                                app.exchangeRateRepository.rates,
+                                app.modelRepository,
+                                app.detectorRepository,
+                            ),
                     ),
                 onNavigateBack = { navController.popBackStack() },
                 onOpenCategories = { navController.navigate(Screen.Categories) },
