@@ -26,7 +26,9 @@ class FakeSubscriptionRepository : SubscriptionRepository {
         subscriptionsFlow.value = subscriptionsMap.values.toList()
     }
 
-    override fun getAllSubscriptions(): Flow<List<Subscription>> = subscriptionsFlow
+    override fun getAllSubscriptions(): Flow<List<Subscription>> = subscriptionsFlow.map { list -> list.filter { it.archivedAt == null } }
+
+    override fun getSubscriptionHistory(): Flow<List<Subscription>> = subscriptionsFlow
 
     override fun getSubscriptionById(id: String): Flow<Subscription?> = subscriptionsFlow.map { list -> list.find { it.id == id } }
 

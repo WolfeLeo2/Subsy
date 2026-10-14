@@ -39,4 +39,11 @@ data class SubscriptionEntity(
     val notes: String?,
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
+    // v6: where payments count, the name banks print, and archiving instead of deleting payment history.
+    @ColumnInfo(name = "spend_category")
+    val spendCategory: String? = null,
+    @ColumnInfo(name = "bank_name")
+    val bankName: String? = null,
+    @ColumnInfo(name = "archived_at")
+    val archivedAt: Long? = null,
 )

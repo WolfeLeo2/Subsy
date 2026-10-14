@@ -38,6 +38,27 @@ data class SpottedCharge(
     val categoryKey: String? = null,
 )
 
+/** How a logged transaction's note names the other side: "Sent to John Kamau", "Paid to Fastmart", "Received from…". */
+enum class ChargeNote {
+    SENT_TO,
+    PAID_TO,
+    RECEIVED_FROM,
+    ;
+
+    companion object {
+        /**
+         * From the message's own words: money to a person ("sent to", "transferred") is Sent to, anything else Paid to,
+         * including M-Pesa card payments that say "sent to M-PESA CARD for account NETFLIX.COM".
+         */
+        fun of(detection: DetectedTransaction): ChargeNote {
+            if (detection.kind == DetectedKind.INCOME) return RECEIVED_FROM
+            val text = detection.rawMessage.lowercase()
+            val toPerson = ("sent to" in text || "transferred" in text) && "for account" !in text
+            return if (toPerson) SENT_TO else PAID_TO
+        }
+    }
+}
+
 /** What "Track it" fills the add form with, from a spotted charge. */
 data class TrackPrefill(
     val name: String,
@@ -59,6 +80,8 @@ class DetectionInbox(
     private val payments: PaymentRecordRepository,
     private val transactions: TransactionRepository,
     private val ledger: BillingLedger,
+    /** The note text for a logged transaction, from string resources (this class has no context). */
+    private val describe: (ChargeNote, counterparty: String) -> String,
 ) {
     /**
      * Unprocessed detections worth showing in [mode]: subscription charges and subscription suggestions always, other
@@ -220,6 +243,9 @@ class DetectionInbox(
                 date = detection.detectedAt,
                 categoryKey = categoryKey,
                 merchant = detection.merchantName.takeIf { it.isNotBlank() },
+                // Transaction rows show the note before the category, so "Paid to Fastmart" beats a bare "Groceries".
+                // Airtime and bundles name nobody, so they get no note and the row shows the category.
+                note = detection.merchantName.takeIf { it.isNotBlank() }?.let { describe(ChargeNote.of(detection), it) },
                 source = detection.source,
             ),
         )

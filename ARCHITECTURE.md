@@ -317,6 +317,19 @@ flowchart TD
 
 The chip shows the result of 2 to 4 before the user touches it.
 
+**Friends & family** (expense and income, 2026-10-14) is a built-in category for money sent to and received from people: paying a friend back, supporting family. Gifts stays for actual gifts. The model can't pick it (its labels are fixed at export), so it reaches people's transfers through the picker and merchant memory: file "Sent to John Kamau" under it once and John's next ones follow.
+
+**The note** of a logged transaction names the other side, because transaction rows show the note before the category ("Paid to Fastmart Supermarket" rather than a bare "Groceries"):
+
+| Message | Note |
+|---|---|
+| Income | Received from X |
+| Money to a person ("sent to", "transferred", without "for account") | Sent to X |
+| Anything else, including "sent to M-PESA CARD for account NETFLIX.COM" | Paid to X |
+| Nobody named (airtime, bundles) | none; the row shows the category |
+
+`ChargeNote.of` picks the wording from the message's own words. The text comes from string resources through the `describe` function `SubsyApplication` gives `DetectionInbox`. The note is written once, at log time, and is editable like any note.
+
 ### 2.12 Onboarding and Settings
 - **`DetectionIntroScreen`** shows once, after the mode chooser, and once to users who already had the app (`detection_intro_seen`). It covers:
   - what detection reads: new SMS and bank app notifications, never old messages
@@ -346,7 +359,7 @@ The chip shows the result of 2 to 4 before the user touches it.
 | `DetectionPortTest` | Kotlin split, tokenize and decode equal the Python reference (1,400+ messages, 47 decode fixtures) |
 | `ChargeGuardsTest` | Amount parsing, currency markers, pre-filter, guards, own-account rule, category direction |
 | `TransactionDetectorRepositoryTest` | Storage, processed state, de-duplication by reference and by amount window |
-| `DetectionInboxTest` | What is shown in each mode, ledger logging, auto-logged reconcile, log-once, merchant memory, category pick, matching, catalog and repeat suggestions, Track it first charge |
+| `DetectionInboxTest` | What is shown in each mode, ledger logging, auto-logged reconcile, log-once, merchant memory, category pick, notes, matching, catalog and repeat suggestions, Track it first charge |
 
 **On the phone.** These run `androidTest` without uninstalling. `connectedDebugAndroidTest` uninstalls the app afterwards, which wipes its data and the model, so never use it on a real phone with real data:
 ```sh
@@ -407,6 +420,7 @@ To support a new country, add real-format templates to `make_train.py` and a few
 - **Model hosting:** a GitHub release asset per export, with SHA-256 checksums in the app. Apache 2.0 attribution for GLiNER2.5 and DeBERTa-v3.
 - **The catalog leans American.** It has no Showmax, DStv, GOtv, Safaricom Home Fibre or Zuku, so Kenyan services are suggested only through the monthly-repeat check until they're added.
 - **SMS access denied twice:** Android stops showing the prompt, and "Tap to allow" then does nothing. It should open App info instead.
+- **The monthly-repeat check can mistake routine spending for a subscription.** A similar grocery or fuel spend at the same merchant 25 to 35 days apart triggers "Track it?". Kept on purpose (2026-10-14): Log it and Ignore still work, and tightening it (three charges, or no suggestions for categories like Groceries) waits for tester feedback.
 - **A bare `$` is USD.** Users in other dollar countries would need the primary currency to decide.
 - **Message length:** beyond 128 words is cut, as gliner2 does. Every bank SMS seen so far is under 70 words.
 - **The Track it form** has no automated test of its next-charge date yet. `nextBillingAfter` itself is tested.

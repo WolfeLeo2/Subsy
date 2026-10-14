@@ -36,6 +36,9 @@ fun SubscriptionEntity.toDomain(): Subscription =
         colorHex = colorHex,
         notes = notes,
         createdAt = createdAt,
+        spendCategory = spendCategory,
+        bankName = bankName,
+        archivedAt = archivedAt,
     )
 
 fun Subscription.toEntity(): SubscriptionEntity =
@@ -56,6 +59,9 @@ fun Subscription.toEntity(): SubscriptionEntity =
         colorHex = colorHex,
         notes = notes,
         createdAt = createdAt,
+        spendCategory = spendCategory,
+        bankName = bankName,
+        archivedAt = archivedAt,
     )
 
 fun PaymentRecordEntity.toDomain(): PaymentRecord =

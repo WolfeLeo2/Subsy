@@ -194,6 +194,7 @@ fun PaymentRecord.shareIn(
 fun BillingCycle.monthsCovered(): Int =
     when (type) {
         BillingCycleType.WEEKLY, BillingCycleType.MONTHLY -> 1
+        BillingCycleType.BI_MONTHLY -> 2
         BillingCycleType.QUARTERLY -> 3
         BillingCycleType.BI_ANNUALLY -> 6
         BillingCycleType.YEARLY -> 12

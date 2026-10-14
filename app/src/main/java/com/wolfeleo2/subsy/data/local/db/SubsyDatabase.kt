@@ -27,7 +27,7 @@ import com.wolfeleo2.subsy.data.local.entity.TransactionEntity
         CustomCategoryEntity::class,
         CategoryBudgetEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
     // Every version change needs an entry here (or a Migration): user data must survive upgrades.
     autoMigrations = [
@@ -35,6 +35,7 @@ import com.wolfeleo2.subsy.data.local.entity.TransactionEntity
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 5, to = 6),
     ],
 )
 abstract class SubsyDatabase : RoomDatabase() {

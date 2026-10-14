@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.CardGiftcard
 import androidx.compose.material.icons.rounded.DirectionsBus
 import androidx.compose.material.icons.rounded.Flight
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Laptop
 import androidx.compose.material.icons.rounded.LocalHospital
@@ -56,12 +57,14 @@ fun SpendCategory.label(): String =
             SpendCategory.TRAVEL -> R.string.spend_travel
             SpendCategory.EDUCATION -> R.string.spend_education
             SpendCategory.GIFTS -> R.string.spend_gifts
+            SpendCategory.FRIENDS_FAMILY -> R.string.spend_friends_family
             SpendCategory.OTHER -> R.string.spend_other
             SpendCategory.SUBSCRIPTIONS -> R.string.spend_subscriptions
             SpendCategory.SALARY -> R.string.spend_salary
             SpendCategory.FREELANCE -> R.string.spend_freelance
             SpendCategory.REFUNDS -> R.string.spend_refunds
             SpendCategory.GIFTS_RECEIVED -> R.string.spend_gifts_received
+            SpendCategory.FRIENDS_FAMILY_INCOME -> R.string.spend_friends_family
             SpendCategory.INVESTMENTS -> R.string.spend_investments
             SpendCategory.OTHER_INCOME -> R.string.spend_other_income
         },
@@ -81,12 +84,14 @@ val SpendCategory.icon: ImageVector
             SpendCategory.TRAVEL -> Icons.Rounded.Flight
             SpendCategory.EDUCATION -> Icons.Rounded.School
             SpendCategory.GIFTS -> Icons.Rounded.CardGiftcard
+            SpendCategory.FRIENDS_FAMILY -> Icons.Rounded.Groups
             SpendCategory.OTHER -> Icons.Rounded.MoreHoriz
             SpendCategory.SUBSCRIPTIONS -> Icons.Rounded.Autorenew
             SpendCategory.SALARY -> Icons.Rounded.Work
             SpendCategory.FREELANCE -> Icons.Rounded.Laptop
             SpendCategory.REFUNDS -> Icons.AutoMirrored.Rounded.Undo
             SpendCategory.GIFTS_RECEIVED -> Icons.Rounded.Redeem
+            SpendCategory.FRIENDS_FAMILY_INCOME -> Icons.Rounded.Groups
             SpendCategory.INVESTMENTS -> Icons.AutoMirrored.Rounded.TrendingUp
             SpendCategory.OTHER_INCOME -> Icons.Rounded.Payments
         }

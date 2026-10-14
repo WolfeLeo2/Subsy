@@ -33,6 +33,10 @@
     <!-- %1$s service name, from the catalog or the merchant -->
     <string name="detection_track_question">Looks like a subscription. Track %1$s?</string>
     <string name="detection_action_track">Track it</string>
+    <!-- Note on a logged transaction. %1$s person or merchant from the message -->
+    <string name="detection_note_sent_to">Sent to %1$s</string>
+    <string name="detection_note_paid_to">Paid to %1$s</string>
+    <string name="detection_note_received_from">Received from %1$s</string>
     <string name="detection_action_log">Log it</string>
     <string name="detection_action_ignore">Ignore</string>
     <string name="detection_channel_name">Spotted charges</string>

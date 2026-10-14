@@ -19,6 +19,15 @@ data class Subscription(
     val colorHex: String? = null,
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    /**
+     * The spending category its payments count under in All spending (a [SpendCategory] name or custom key): rent under
+     * Housing & bills, school fees under Education. Null keeps them under Subscriptions.
+     */
+    val spendCategory: String? = null,
+    /** The payee as bank messages print it ("ACME PROPERTIES"), so detection matches a subscription named "Rent". */
+    val bankName: String? = null,
+    /** Set when the user deleted it but it has payments: hidden everywhere, its spending history kept. */
+    val archivedAt: Long? = null,
 ) {
     /** Normalized monthly cost of this plan, whatever its status. */
     val monthlyCost: Double

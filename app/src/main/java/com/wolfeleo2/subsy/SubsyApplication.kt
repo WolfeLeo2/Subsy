@@ -13,6 +13,7 @@ import com.wolfeleo2.subsy.data.local.db.SubsyDatabase
 import com.wolfeleo2.subsy.data.repository.BillingLedger
 import com.wolfeleo2.subsy.data.repository.BudgetRepository
 import com.wolfeleo2.subsy.data.repository.CategoryRepository
+import com.wolfeleo2.subsy.data.repository.ChargeNote
 import com.wolfeleo2.subsy.data.repository.DefaultBudgetRepository
 import com.wolfeleo2.subsy.data.repository.DefaultCategoryRepository
 import com.wolfeleo2.subsy.data.repository.DefaultPaymentRecordRepository
@@ -52,7 +53,16 @@ class SubsyApplication :
             paymentRecordRepository,
             transactionRepository,
             BillingLedger(subscriptionRepository, paymentRecordRepository),
-        )
+        ) { note, counterparty ->
+            getString(
+                when (note) {
+                    ChargeNote.SENT_TO -> R.string.detection_note_sent_to
+                    ChargeNote.PAID_TO -> R.string.detection_note_paid_to
+                    ChargeNote.RECEIVED_FROM -> R.string.detection_note_received_from
+                },
+                counterparty,
+            )
+        }
     }
 
     override fun onCreate() {

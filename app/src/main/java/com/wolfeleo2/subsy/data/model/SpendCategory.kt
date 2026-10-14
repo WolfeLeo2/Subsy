@@ -23,12 +23,16 @@ enum class SpendCategory(
     TRAVEL(TransactionType.EXPENSE, "#0369A1"),
     EDUCATION(TransactionType.EXPENSE, "#B45309"),
     GIFTS(TransactionType.EXPENSE, "#E11D48"),
+
+    // Money sent to people: paying a friend back, supporting family. Gifts stays for actual gifts.
+    FRIENDS_FAMILY(TransactionType.EXPENSE, "#A21CAF"),
     OTHER(TransactionType.EXPENSE, "#64748B"),
     SUBSCRIPTIONS(TransactionType.EXPENSE, "#4F46E5", pickable = false),
     SALARY(TransactionType.INCOME, "#15803D"),
     FREELANCE(TransactionType.INCOME, "#0D9488"),
     REFUNDS(TransactionType.INCOME, "#0284C7"),
     GIFTS_RECEIVED(TransactionType.INCOME, "#BE185D"),
+    FRIENDS_FAMILY_INCOME(TransactionType.INCOME, "#A21CAF"),
     INVESTMENTS(TransactionType.INCOME, "#A16207"),
     OTHER_INCOME(TransactionType.INCOME, "#64748B"),
     ;

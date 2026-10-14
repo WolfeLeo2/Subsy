@@ -27,7 +27,24 @@ class SubscriptionRepositoryTest {
             storageFlow.value = storage.values.toList()
         }
 
-        override fun getAllSubscriptions(): Flow<List<SubscriptionEntity>> = storageFlow
+        /** Ids with payment records, which the real DAO reads from payment_records. */
+        val paidIds = mutableSetOf<String>()
+
+        override fun getAllSubscriptions(): Flow<List<SubscriptionEntity>> = storageFlow.map { list -> list.filter { it.archivedAt == null } }
+
+        override fun getSubscriptionHistory(): Flow<List<SubscriptionEntity>> = storageFlow
+
+        override suspend fun hasPayments(id: String): Boolean = id in paidIds
+
+        override suspend fun archive(
+            id: String,
+            at: Long,
+        ) {
+            storage[id]?.let {
+                storage[id] = it.copy(archivedAt = at, status = "CANCELLED")
+                emit()
+            }
+        }
 
         override fun getSubscriptionById(id: String): Flow<SubscriptionEntity?> = storageFlow.map { list -> list.find { it.id == id } }
 

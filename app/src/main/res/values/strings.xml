@@ -42,6 +42,7 @@
     <!-- Billing cycles -->
     <string name="cycle_weekly">Weekly</string>
     <string name="cycle_monthly">Monthly</string>
+    <string name="cycle_bimonthly">Every 2 months</string>
     <string name="cycle_quarterly">Every 3 months</string>
     <string name="cycle_biannually">Every 6 months</string>
     <string name="cycle_yearly">Yearly</string>
@@ -52,6 +53,7 @@
     </plurals>
     <string name="suffix_week">/wk</string>
     <string name="suffix_month">/mo</string>
+    <string name="suffix_two_months">/2 mo</string>
     <string name="suffix_quarter">/3 mo</string>
     <string name="suffix_half_year">/6 mo</string>
     <string name="suffix_year">/yr</string>

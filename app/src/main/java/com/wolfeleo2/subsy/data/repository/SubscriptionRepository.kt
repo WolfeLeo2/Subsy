@@ -12,7 +12,11 @@ import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 
 interface SubscriptionRepository {
+    /** The user's subscriptions; archived ones are left out. */
     fun getAllSubscriptions(): Flow<List<Subscription>>
+
+    /** Including archived ones, for screens that show or total past payments. */
+    fun getSubscriptionHistory(): Flow<List<Subscription>>
 
     fun getSubscriptionById(id: String): Flow<Subscription?>
 
@@ -24,6 +28,10 @@ interface SubscriptionRepository {
 
     suspend fun deleteSubscription(subscription: Subscription)
 
+    /**
+     * Deletes it, unless it has payments: then it is archived (hidden and cancelled) so the money already spent keeps
+     * counting in totals and budgets. Payment records cascade-delete with their subscription.
+     */
     suspend fun deleteSubscriptionById(id: String)
 
     suspend fun pauseSubscription(id: String)
@@ -61,6 +69,9 @@ class DefaultSubscriptionRepository(
             entities.map { it.toDomain() }
         }
 
+    override fun getSubscriptionHistory(): Flow<List<Subscription>> =
+        subscriptionDao.getSubscriptionHistory().map { entities -> entities.map { it.toDomain() } }
+
     override fun getSubscriptionById(id: String): Flow<Subscription?> = subscriptionDao.getSubscriptionById(id).map { it?.toDomain() }
 
     override suspend fun getSubscriptionByIdDirect(id: String): Subscription? = subscriptionDao.getSubscriptionByIdDirect(id)?.toDomain()
@@ -78,7 +89,11 @@ class DefaultSubscriptionRepository(
     }
 
     override suspend fun deleteSubscriptionById(id: String) {
-        subscriptionDao.deleteSubscriptionById(id)
+        if (subscriptionDao.hasPayments(id)) {
+            subscriptionDao.archive(id, System.currentTimeMillis())
+        } else {
+            subscriptionDao.deleteSubscriptionById(id)
+        }
     }
 
     override suspend fun pauseSubscription(id: String) {

@@ -37,7 +37,14 @@ class DetectionInboxTest {
     private val payments = FakePaymentRecordRepository()
     private val transactions = FakeTransactionRepository()
     private val detector = FakeDetector()
-    private val inbox = DetectionInbox(detector, subscriptions, payments, transactions, BillingLedger(subscriptions, payments))
+    private val inbox =
+        DetectionInbox(
+            detector,
+            subscriptions,
+            payments,
+            transactions,
+            BillingLedger(subscriptions, payments),
+        ) { note, who -> "$note $who" }
 
     private val billingDay = millis(2026, 10, 15)
     private val netflix =
@@ -220,6 +227,41 @@ class DetectionInboxTest {
                     .single()
                     .categoryKey,
             )
+        }
+
+    @Test
+    fun loggedTransactionsSayWhoTheMoneyWentToOrCameFrom() =
+        runTest {
+            detector.add(detection("shop", "Fastmart Supermarket", 200.0).copy(rawMessage = "Ksh200.00 paid to Fastmart Supermarket."))
+            detector.add(detection("john", "JOHN KAMAU", 200.0).copy(rawMessage = "Ksh200.00 sent to JOHN KAMAU 0712345678"))
+            detector.add(
+                detection("card", "NETFLIX.COM", 1100.0).copy(rawMessage = "Ksh1,100.00 sent to M-PESA CARD for account NETFLIX.COM"),
+            )
+            detector.add(detection("mum", "JANE WANJIRU", 500.0, DetectedKind.INCOME))
+            detector.add(detection("air", "", 10.0).copy(rawMessage = "You bought Ksh10.00 of airtime"))
+
+            inbox.pending(flowOf(AppMode.ALL_SPENDING)).first().forEach { inbox.log(it) }
+
+            val notes = transactions.getAll().first().associate { it.amount to it.note }
+            assertEquals(
+                "PAID_TO Fastmart Supermarket",
+                transactions
+                    .getAll()
+                    .first()
+                    .first { it.merchant == "Fastmart Supermarket" }
+                    .note,
+            )
+            assertEquals(
+                "SENT_TO JOHN KAMAU",
+                transactions
+                    .getAll()
+                    .first()
+                    .first { it.merchant == "JOHN KAMAU" }
+                    .note,
+            )
+            assertEquals("PAID_TO NETFLIX.COM", notes[1100.0])
+            assertEquals("RECEIVED_FROM JANE WANJIRU", notes[500.0])
+            assertNull(notes[10.0]) // nobody named: the row shows the category instead
         }
 
     @Test

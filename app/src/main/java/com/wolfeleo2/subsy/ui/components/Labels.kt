@@ -30,6 +30,7 @@ fun BillingCycleType.label(): String =
         when (this) {
             BillingCycleType.WEEKLY -> R.string.cycle_weekly
             BillingCycleType.MONTHLY -> R.string.cycle_monthly
+            BillingCycleType.BI_MONTHLY -> R.string.cycle_bimonthly
             BillingCycleType.QUARTERLY -> R.string.cycle_quarterly
             BillingCycleType.BI_ANNUALLY -> R.string.cycle_biannually
             BillingCycleType.YEARLY -> R.string.cycle_yearly
@@ -50,6 +51,7 @@ fun BillingCycle.suffix(): String {
     return when (type) {
         BillingCycleType.WEEKLY -> stringResource(R.string.suffix_week)
         BillingCycleType.MONTHLY -> stringResource(R.string.suffix_month)
+        BillingCycleType.BI_MONTHLY -> stringResource(R.string.suffix_two_months)
         BillingCycleType.QUARTERLY -> stringResource(R.string.suffix_quarter)
         BillingCycleType.BI_ANNUALLY -> stringResource(R.string.suffix_half_year)
         BillingCycleType.YEARLY -> stringResource(R.string.suffix_year)

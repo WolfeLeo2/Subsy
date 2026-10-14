@@ -9,6 +9,7 @@ enum class BillingCycleType(
 ) {
     WEEKLY("Weekly"),
     MONTHLY("Monthly"),
+    BI_MONTHLY("Every 2 months"),
     QUARTERLY("Quarterly"),
     BI_ANNUALLY("Bi-Annually"),
     YEARLY("Yearly"),
@@ -58,6 +59,7 @@ data class BillingCycle(
             when (type) {
                 BillingCycleType.WEEKLY -> anchor.plusWeeks(n)
                 BillingCycleType.MONTHLY -> anchor.plusMonths(n)
+                BillingCycleType.BI_MONTHLY -> anchor.plusMonths(2 * n)
                 BillingCycleType.QUARTERLY -> anchor.plusMonths(3 * n)
                 BillingCycleType.BI_ANNUALLY -> anchor.plusMonths(6 * n)
                 BillingCycleType.YEARLY -> anchor.plusYears(n)
@@ -73,6 +75,7 @@ data class BillingCycle(
         when (type) {
             BillingCycleType.WEEKLY -> amount * DAYS_PER_MONTH / 7.0
             BillingCycleType.MONTHLY -> amount
+            BillingCycleType.BI_MONTHLY -> amount / 2.0
             BillingCycleType.QUARTERLY -> amount / 3.0
             BillingCycleType.BI_ANNUALLY -> amount / 6.0
             BillingCycleType.YEARLY -> amount / 12.0
@@ -83,6 +86,7 @@ data class BillingCycle(
         private const val DAYS_PER_MONTH = 365.25 / 12
         val WEEKLY = BillingCycle(BillingCycleType.WEEKLY)
         val MONTHLY = BillingCycle(BillingCycleType.MONTHLY)
+        val BI_MONTHLY = BillingCycle(BillingCycleType.BI_MONTHLY)
         val QUARTERLY = BillingCycle(BillingCycleType.QUARTERLY)
         val BI_ANNUALLY = BillingCycle(BillingCycleType.BI_ANNUALLY)
         val YEARLY = BillingCycle(BillingCycleType.YEARLY)
@@ -98,6 +102,7 @@ data class BillingCycle(
                 }
                 trimmed.equals("WEEKLY", ignoreCase = true) -> WEEKLY
                 trimmed.equals("MONTHLY", ignoreCase = true) -> MONTHLY
+                trimmed.equals("BI_MONTHLY", ignoreCase = true) -> BI_MONTHLY
                 trimmed.equals("QUARTERLY", ignoreCase = true) -> QUARTERLY
                 trimmed.equals("BI_ANNUALLY", ignoreCase = true) || trimmed.equals("BIANNUALLY", ignoreCase = true) -> BI_ANNUALLY
                 trimmed.equals("YEARLY", ignoreCase = true) -> YEARLY
