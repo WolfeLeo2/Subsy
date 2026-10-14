@@ -77,6 +77,15 @@ class ChargeGuardsTest {
     }
 
     @Test
+    fun moneyToOrFromTheAccountHolderIsATransfer() {
+        val message = "You have received KES 3000.0 from JANE WANJIRU. M-PESA Ref UIM0N7LAQ5."
+        val received = reading(kind = "money received or refund", amount = "KES 3000.0", merchant = "JANE WANJIRU")
+        assertEquals(DetectedKind.TRANSFER, ChargeGuards.accept(received, message, accountHolder = "Wanjiru Jane")!!.kind)
+        assertEquals(DetectedKind.INCOME, ChargeGuards.accept(received, message, accountHolder = "")!!.kind)
+        assertEquals(DetectedKind.INCOME, ChargeGuards.accept(received, message, accountHolder = "John Kamau")!!.kind)
+    }
+
+    @Test
     fun keepsTheCategoryOnlyWhenItFitsTheDirection() {
         val salaryAsExpense =
             ChargeGuards.accept(

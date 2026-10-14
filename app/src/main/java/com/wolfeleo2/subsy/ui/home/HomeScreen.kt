@@ -89,6 +89,8 @@ fun HomeScreen(
     onNavigateToSubscriptionDetail: (Subscription) -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Charges spotted by detection, shown under the hero; filled in by the nav graph. */
+    spotted: @Composable (Modifier) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -103,6 +105,7 @@ fun HomeScreen(
         onNavigateToSubscriptionDetail = onNavigateToSubscriptionDetail,
         onNavigateToSettings = onNavigateToSettings,
         modifier = modifier,
+        spotted = spotted,
     )
 }
 
@@ -118,6 +121,7 @@ fun HomeScreenContent(
     onNavigateToSubscriptionDetail: (Subscription) -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    spotted: @Composable (Modifier) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -178,6 +182,7 @@ fun HomeScreenContent(
                         onDelete = onDelete,
                         onTogglePause = onTogglePause,
                         modifier = Modifier.rootToolbarScroll(),
+                        spotted = spotted,
                     )
             }
         }
@@ -192,6 +197,7 @@ private fun HomeList(
     onDelete: (Subscription) -> Unit,
     onTogglePause: (Subscription) -> Unit,
     modifier: Modifier = Modifier,
+    spotted: @Composable (Modifier) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -212,6 +218,7 @@ private fun HomeList(
                 currencyNote = state.currencyNote,
             )
         }
+        item(key = "spotted") { spotted(Modifier.padding(top = Spacing.l)) }
         item(key = "filters") {
             val labels = SubscriptionFilter.entries.associateWith { stringResource(it.label) }
             ConnectedButtonGroup(

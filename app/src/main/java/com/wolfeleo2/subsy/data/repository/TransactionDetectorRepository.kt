@@ -1,15 +1,11 @@
 package com.wolfeleo2.subsy.data.repository
 
 import com.wolfeleo2.subsy.data.local.dao.DetectedTransactionDao
-import com.wolfeleo2.subsy.data.local.dao.PaymentRecordDao
 import com.wolfeleo2.subsy.data.mapper.toDomain
 import com.wolfeleo2.subsy.data.mapper.toEntity
 import com.wolfeleo2.subsy.data.model.DetectedTransaction
-import com.wolfeleo2.subsy.data.model.PaymentRecord
-import com.wolfeleo2.subsy.data.model.PaymentStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.util.UUID
 
 interface TransactionDetectorRepository {
     fun getUnprocessedTransactions(): Flow<List<DetectedTransaction>>
@@ -32,20 +28,16 @@ interface TransactionDetectorRepository {
 
     suspend fun recordDetectedTransaction(transaction: DetectedTransaction)
 
-    suspend fun confirmTransaction(
-        transactionId: String,
-        subscriptionId: String,
-        currency: String = "USD",
-    ): PaymentRecord?
+    suspend fun findById(id: String): DetectedTransaction?
 
-    suspend fun ignoreTransaction(transactionId: String)
+    /** The user logged or ignored it; logging itself happens in [DetectionInbox], through [BillingLedger]. */
+    suspend fun markProcessed(transactionId: String)
 
     suspend fun clearProcessedTransactions()
 }
 
 class DefaultTransactionDetectorRepository(
     private val detectedTransactionDao: DetectedTransactionDao,
-    private val paymentRecordDao: PaymentRecordDao,
 ) : TransactionDetectorRepository {
     override fun getUnprocessedTransactions(): Flow<List<DetectedTransaction>> =
         detectedTransactionDao.getUnprocessedTransactions().map { entities ->
@@ -75,27 +67,9 @@ class DefaultTransactionDetectorRepository(
         detectedTransactionDao.insertTransaction(transaction.toEntity())
     }
 
-    override suspend fun confirmTransaction(
-        transactionId: String,
-        subscriptionId: String,
-        currency: String,
-    ): PaymentRecord? {
-        val detected = detectedTransactionDao.getTransactionById(transactionId) ?: return null
-        val paymentRecord =
-            PaymentRecord(
-                id = UUID.randomUUID().toString(),
-                subscriptionId = subscriptionId,
-                amount = detected.amount,
-                currency = currency,
-                paymentDate = detected.detectedAt,
-                status = PaymentStatus.CONFIRMED,
-            )
-        paymentRecordDao.insertPaymentRecord(paymentRecord.toEntity())
-        detectedTransactionDao.markAsProcessed(transactionId, isProcessed = true)
-        return paymentRecord
-    }
+    override suspend fun findById(id: String): DetectedTransaction? = detectedTransactionDao.getTransactionById(id)?.toDomain()
 
-    override suspend fun ignoreTransaction(transactionId: String) {
+    override suspend fun markProcessed(transactionId: String) {
         detectedTransactionDao.markAsProcessed(transactionId, isProcessed = true)
     }
 

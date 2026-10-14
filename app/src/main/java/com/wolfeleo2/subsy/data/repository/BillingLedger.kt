@@ -15,18 +15,23 @@ class BillingLedger(
     private val subscriptions: SubscriptionRepository,
     private val payments: PaymentRecordRepository,
 ) {
-    /** Returns the new next billing date. */
+    /**
+     * Returns the new next billing date. [amount] and [currency] default to the subscription's price; a detected charge
+     * passes what the bank actually took.
+     */
     suspend fun logPaymentAndAdvance(
         sub: Subscription,
         status: PaymentStatus,
         paidAt: Long = System.currentTimeMillis(),
+        amount: Double = sub.amount,
+        currency: String = sub.currency,
     ): Long {
         payments.recordPayment(
             PaymentRecord(
                 id = UUID.randomUUID().toString(),
                 subscriptionId = sub.id,
-                amount = sub.amount,
-                currency = sub.currency,
+                amount = amount,
+                currency = currency,
                 paymentDate = paidAt,
                 status = status,
             ),

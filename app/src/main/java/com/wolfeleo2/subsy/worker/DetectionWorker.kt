@@ -29,23 +29,18 @@ class DetectionWorker(
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val app = applicationContext as SubsyApplication
+        val settings = app.settingsRepository.settings.first()
         // The user may have opted out between capture and now.
-        if (!app.settingsRepository.settings
-                .first()
-                .detectionEnabled ||
-            !app.modelRepository.isReady()
-        ) {
-            return Result.success()
-        }
+        if (!settings.detectionEnabled || !app.modelRepository.isReady()) return Result.success()
         val text = inputData.getString(KEY_TEXT) ?: return Result.success()
         val at = inputData.getLong(KEY_AT, System.currentTimeMillis())
         // Never fail: a failed job would cancel every message queued behind it in the chain.
         return try {
             val reading = ChargeModel(app.modelRepository.dir).use { it.read(text) }
-            val charge = ChargeGuards.accept(reading, text) ?: return Result.success()
+            val charge = ChargeGuards.accept(reading, text, settings.accountHolderName) ?: return Result.success()
             val detector = app.detectorRepository
             if (!detector.isDuplicate(charge.reference, charge.amount, charge.currency, at)) {
-                detector.recordDetectedTransaction(
+                val detection =
                     DetectedTransaction(
                         id = UUID.randomUUID().toString(),
                         merchantName = charge.merchant.orEmpty(),
@@ -58,8 +53,11 @@ class DetectionWorker(
                         reference = charge.reference,
                         categoryKey = charge.categoryKey,
                         sender = inputData.getString(KEY_SENDER),
-                    ),
-                )
+                    )
+                detector.recordDetectedTransaction(detection)
+                // Only what the user could act on in the app gets a notification (no transfers, and no unmatched
+                // charges in Subscriptions mode).
+                app.detectionInbox.spot(detection, settings.appMode)?.let { DetectionNotifier(applicationContext).show(it) }
             }
             Result.success()
         } catch (e: Exception) {

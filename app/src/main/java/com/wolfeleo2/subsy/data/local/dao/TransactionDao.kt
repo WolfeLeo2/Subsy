@@ -21,6 +21,16 @@ interface TransactionDao {
     @Update
     suspend fun update(transaction: TransactionEntity)
 
+    /** Merchant memory: the category of the latest transaction of this kind with the same merchant. */
+    @Query(
+        "SELECT category_key FROM transactions WHERE merchant = :merchant COLLATE NOCASE AND type = :type " +
+            "ORDER BY date DESC, created_at DESC LIMIT 1",
+    )
+    suspend fun latestCategoryFor(
+        merchant: String,
+        type: String,
+    ): String?
+
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteById(id: String)
 }

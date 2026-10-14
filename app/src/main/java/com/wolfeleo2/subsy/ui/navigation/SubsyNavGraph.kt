@@ -54,6 +54,8 @@ import com.wolfeleo2.subsy.ui.analytics.AnalyticsViewModel
 import com.wolfeleo2.subsy.ui.detail.DetailPreview
 import com.wolfeleo2.subsy.ui.detail.SubscriptionDetailScreen
 import com.wolfeleo2.subsy.ui.detail.SubscriptionDetailViewModel
+import com.wolfeleo2.subsy.ui.detection.SpottedCharges
+import com.wolfeleo2.subsy.ui.detection.SpottedChargesViewModel
 import com.wolfeleo2.subsy.ui.home.HomeScreen
 import com.wolfeleo2.subsy.ui.home.HomeViewModel
 import com.wolfeleo2.subsy.ui.settings.SettingsScreen
@@ -65,6 +67,7 @@ import com.wolfeleo2.subsy.ui.transactions.TransactionSheet
 import com.wolfeleo2.subsy.ui.transactions.TransactionSheetViewModel
 import com.wolfeleo2.subsy.ui.transactions.TransactionsScreen
 import com.wolfeleo2.subsy.ui.transactions.TransactionsViewModel
+import com.wolfeleo2.subsy.worker.DetectionNotifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
@@ -245,6 +248,24 @@ private fun SubsyNavHost(
     openDetail: (origin: String) -> (Subscription) -> Unit,
     openSheet: (transactionId: String?) -> Unit,
 ) {
+    // Home and Transactions each show the charges detection spotted, with one view model per screen.
+    val spotted: @Composable (Modifier) -> Unit = { modifier ->
+        SpottedCharges(
+            onTrack = { navController.navigate(Screen.TrackSpottedCharge(it)) },
+            viewModel =
+                viewModel(
+                    factory =
+                        SpottedChargesViewModel.Factory(
+                            app.detectionInbox,
+                            app.settingsRepository.settings.map { it.appMode },
+                            app.categoryRepository,
+                        ) {
+                            DetectionNotifier(app).cancel(it)
+                        },
+                ),
+            modifier = modifier,
+        )
+    }
     NavHost(
         navController = navController,
         startDestination = Screen.Home,
@@ -263,6 +284,7 @@ private fun SubsyNavHost(
                     onNavigateToAddSubscription = openAdd,
                     onNavigateToSubscriptionDetail = openDetail(ORIGIN_HOME),
                     onNavigateToSettings = { navController.navigate(Screen.Settings) },
+                    spotted = spotted,
                 )
             }
         }
@@ -303,6 +325,25 @@ private fun SubsyNavHost(
                                 null,
                                 primaryCurrency,
                                 app.exchangeRateRepository.rates,
+                            ),
+                    ),
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Screen.TrackSpottedCharge> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.TrackSpottedCharge>()
+            AddEditSubscriptionScreen(
+                viewModel =
+                    viewModel(
+                        factory =
+                            AddEditViewModel.Factory(
+                                app.subscriptionRepository,
+                                null,
+                                primaryCurrency,
+                                app.exchangeRateRepository.rates,
+                                trackDetectionId = route.detectionId,
+                                inbox = app.detectionInbox,
                             ),
                     ),
                 onNavigateBack = { navController.popBackStack() },
@@ -390,6 +431,7 @@ private fun SubsyNavHost(
                 // No shared element on these rows, so Detail opens without a container transform.
                 onOpenSubscription = openDetail(""),
                 onAdd = { openSheet(null) },
+                spotted = spotted,
             )
         }
 

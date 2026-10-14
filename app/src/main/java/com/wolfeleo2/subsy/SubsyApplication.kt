@@ -10,6 +10,7 @@ import coil3.memory.MemoryCache
 import coil3.request.crossfade
 import coil3.svg.SvgDecoder
 import com.wolfeleo2.subsy.data.local.db.SubsyDatabase
+import com.wolfeleo2.subsy.data.repository.BillingLedger
 import com.wolfeleo2.subsy.data.repository.BudgetRepository
 import com.wolfeleo2.subsy.data.repository.CategoryRepository
 import com.wolfeleo2.subsy.data.repository.DefaultBudgetRepository
@@ -18,6 +19,7 @@ import com.wolfeleo2.subsy.data.repository.DefaultPaymentRecordRepository
 import com.wolfeleo2.subsy.data.repository.DefaultSubscriptionRepository
 import com.wolfeleo2.subsy.data.repository.DefaultTransactionDetectorRepository
 import com.wolfeleo2.subsy.data.repository.DefaultTransactionRepository
+import com.wolfeleo2.subsy.data.repository.DetectionInbox
 import com.wolfeleo2.subsy.data.repository.ExchangeRateRepository
 import com.wolfeleo2.subsy.data.repository.PaymentRecordRepository
 import com.wolfeleo2.subsy.data.repository.SettingsRepository
@@ -41,7 +43,16 @@ class SubsyApplication :
     val exchangeRateRepository by lazy { ExchangeRateRepository(filesDir.resolve("exchange_rates.json")) }
     val modelRepository by lazy { ModelRepository(this) }
     val detectorRepository: TransactionDetectorRepository by lazy {
-        DefaultTransactionDetectorRepository(database.detectedTransactionDao(), database.paymentRecordDao())
+        DefaultTransactionDetectorRepository(database.detectedTransactionDao())
+    }
+    val detectionInbox by lazy {
+        DetectionInbox(
+            detectorRepository,
+            subscriptionRepository,
+            paymentRecordRepository,
+            transactionRepository,
+            BillingLedger(subscriptionRepository, paymentRecordRepository),
+        )
     }
 
     override fun onCreate() {

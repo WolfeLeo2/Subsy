@@ -94,12 +94,16 @@ object ChargeGuards {
     /** A usable transaction reference: one token with letters or digits mixed, long enough not to repeat by chance. */
     private val referenceShape = Regex("""[A-Za-z0-9.]{6,}""")
 
-    /** Null when the message isn't a completed money movement the app can trust. */
+    /**
+     * Null when the message isn't a completed money movement the app can trust. [accountHolder] is the user's name from
+     * Settings: money to or from it is the user moving their own money (M-Pesa to bank and back), not spending.
+     */
     fun accept(
         reading: ModelReading,
         message: String,
+        accountHolder: String = "",
     ): DetectedCharge? {
-        val kind = kinds[reading.kind] ?: return null
+        val modelKind = kinds[reading.kind] ?: return null
         val amountText = reading.entities["amount"]?.firstOrNull() ?: return null
         val amount = parseMessageAmount(amountText)?.takeIf { it > 0 } ?: return null
         // The amount span usually carries its marker ("Ksh1,100.00"); otherwise the message's first marker.
@@ -115,11 +119,23 @@ object ChargeGuards {
             reading.entities["reference"]?.firstOrNull { ref ->
                 referenceShape.matches(ref) && ref.any(Char::isDigit) && ref.any(Char::isLetter)
             }
+        val kind = if (merchant != null && isAccountHolder(merchant, accountHolder)) DetectedKind.TRANSFER else modelKind
         val category =
             categories[reading.category]
                 ?.takeIf { (it.kind == TransactionType.INCOME) == (kind == DetectedKind.INCOME) }
         return DetectedCharge(kind, amount, currency, merchant, reference, category?.name)
     }
+}
+
+/** Every word of the holder's name appears in [counterparty], in any order ("KAMAU JOHN" matches "John Kamau"). */
+private fun isAccountHolder(
+    counterparty: String,
+    accountHolder: String,
+): Boolean {
+    val nameWords = accountHolder.lowercase().split(Regex("""\W+""")).filter { it.isNotEmpty() }
+    if (nameWords.isEmpty()) return false
+    val words = counterparty.lowercase().split(Regex("""\W+""")).toSet()
+    return nameWords.all { it in words }
 }
 
 /**

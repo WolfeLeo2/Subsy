@@ -87,6 +87,8 @@ fun TransactionsScreen(
     onOpenSubscription: (Subscription) -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Charges spotted by detection, shown under the month summary; filled in by the nav graph. */
+    spotted: @Composable (Modifier) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -115,13 +117,18 @@ fun TransactionsScreen(
         Box(Modifier.fillMaxSize().padding(innerPadding)) {
             when {
                 state.isLoading -> LoadingState()
+                // Spotted charges show here too: a new user's first transactions may well come from them.
                 !state.hasAnything ->
-                    EmptyState(
-                        icon = Icons.AutoMirrored.Rounded.ReceiptLong,
-                        title = stringResource(R.string.transactions_empty_title),
-                        body = stringResource(R.string.transactions_empty_body),
-                        action = { Button(onClick = onAdd) { Text(stringResource(R.string.action_add_transaction)) } },
-                    )
+                    Column(Modifier.fillMaxSize()) {
+                        spotted(Modifier.padding(horizontal = Spacing.gutter))
+                        EmptyState(
+                            icon = Icons.AutoMirrored.Rounded.ReceiptLong,
+                            title = stringResource(R.string.transactions_empty_title),
+                            body = stringResource(R.string.transactions_empty_body),
+                            action = { Button(onClick = onAdd) { Text(stringResource(R.string.action_add_transaction)) } },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 else ->
                     TransactionsList(
                         state = state,
@@ -132,6 +139,7 @@ fun TransactionsScreen(
                             row.transaction?.let(onEdit) ?: row.subscription?.let(onOpenSubscription)
                         },
                         onDelete = onDelete,
+                        spotted = spotted,
                     )
             }
         }
@@ -146,6 +154,7 @@ private fun TransactionsList(
     onFilter: (TransactionFilter) -> Unit,
     onOpen: (TransactionRow) -> Unit,
     onDelete: (TransactionRow) -> Unit,
+    spotted: @Composable (Modifier) -> Unit,
 ) {
     val monthName = remember(state.month) { state.month.format(DateTimeFormatter.ofPattern("LLLL yyyy")) }
     val isThisMonth = state.month == YearMonth.from(today())
@@ -167,6 +176,7 @@ private fun TransactionsList(
                 MonthSummaryCard(summary, state.currency, state.budget, Modifier.padding(vertical = Spacing.s).animateItem())
             }
         }
+        item(key = "spotted") { spotted(Modifier.padding(bottom = Spacing.s)) }
         item(key = "filter") {
             val labels =
                 mapOf(

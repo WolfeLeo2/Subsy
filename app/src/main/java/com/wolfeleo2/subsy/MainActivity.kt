@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.wolfeleo2.subsy.data.model.ThemeMode
 import com.wolfeleo2.subsy.ui.navigation.SubsyNavGraph
+import com.wolfeleo2.subsy.ui.onboarding.DetectionIntroScreen
 import com.wolfeleo2.subsy.ui.onboarding.ModeChooserScreen
 import com.wolfeleo2.subsy.ui.theme.AppTheme
 import kotlinx.coroutines.launch
@@ -46,6 +47,17 @@ class MainActivity : ComponentActivity() {
                         current.appMode == null ->
                             ModeChooserScreen(
                                 onChoose = { lifecycleScope.launch { settingsRepository.setAppMode(it) } },
+                            )
+                        !current.detectionIntroSeen ->
+                            DetectionIntroScreen(
+                                onTurnOn = {
+                                    lifecycleScope.launch {
+                                        settingsRepository.setDetectionEnabled(true)
+                                        app.modelRepository.download()
+                                        settingsRepository.setDetectionIntroSeen()
+                                    }
+                                },
+                                onNotNow = { lifecycleScope.launch { settingsRepository.setDetectionIntroSeen() } },
                             )
                         else -> SubsyNavGraph()
                     }

@@ -7,6 +7,7 @@ import com.wolfeleo2.subsy.data.mapper.toEntity
 import com.wolfeleo2.subsy.data.model.CustomCategory
 import com.wolfeleo2.subsy.data.model.SpendCategory
 import com.wolfeleo2.subsy.data.model.Transaction
+import com.wolfeleo2.subsy.data.model.TransactionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -21,6 +22,12 @@ interface TransactionRepository {
     suspend fun update(transaction: Transaction)
 
     suspend fun delete(id: String)
+
+    /** The category the user last gave [merchant] for this [type], if they ever logged one. */
+    suspend fun rememberedCategory(
+        merchant: String,
+        type: TransactionType,
+    ): String?
 }
 
 class DefaultTransactionRepository(
@@ -35,6 +42,11 @@ class DefaultTransactionRepository(
     override suspend fun update(transaction: Transaction) = dao.update(transaction.toEntity())
 
     override suspend fun delete(id: String) = dao.deleteById(id)
+
+    override suspend fun rememberedCategory(
+        merchant: String,
+        type: TransactionType,
+    ): String? = dao.latestCategoryFor(merchant, type.name)
 }
 
 interface CategoryRepository {

@@ -12,8 +12,10 @@ import com.wolfeleo2.subsy.data.model.Category
 import com.wolfeleo2.subsy.data.model.PresetService
 import com.wolfeleo2.subsy.data.model.Subscription
 import com.wolfeleo2.subsy.data.model.SubscriptionStatus
+import com.wolfeleo2.subsy.data.repository.DetectionInbox
 import com.wolfeleo2.subsy.data.repository.ExchangeRates
 import com.wolfeleo2.subsy.data.repository.SubscriptionRepository
+import com.wolfeleo2.subsy.data.repository.TrackPrefill
 import com.wolfeleo2.subsy.data.util.formatAmountForInput
 import com.wolfeleo2.subsy.data.util.parseAmount
 import com.wolfeleo2.subsy.data.util.toEpochMillis
@@ -95,6 +97,9 @@ class AddEditViewModel(
     primaryCurrency: Flow<String> = flowOf("USD"),
     /** Only used to show what a catalog (US) price comes to in the form's currency. */
     val exchangeRates: StateFlow<ExchangeRates?> = MutableStateFlow(null),
+    /** Track it from a spotted charge: the form starts from that charge, and saving records it as the first payment. */
+    private val trackDetectionId: String? = null,
+    private val inbox: DetectionInbox? = null,
 ) : ViewModel() {
     private val _formState =
         MutableStateFlow(
@@ -113,6 +118,9 @@ class AddEditViewModel(
     private var original: Subscription? = null
     private var pristine: AddEditFormState = _formState.value.content()
 
+    /** The tracked charge's date: the next charge is one cycle after it rather than one cycle from today. */
+    private var chargedAt: Long? = null
+
     val hasUnsavedChanges: Boolean
         get() = _formState.value.content() != pristine
 
@@ -123,6 +131,7 @@ class AddEditViewModel(
             } else {
                 val currency = primaryCurrency.first()
                 _formState.update { it.copy(currency = currency) }
+                trackDetectionId?.let { id -> inbox?.trackPrefill(id) }?.let(::applyTrackPrefill)
                 pristine = _formState.value.content()
             }
         }
@@ -154,6 +163,24 @@ class AddEditViewModel(
         pristine = _formState.value.content()
     }
 
+    private fun applyTrackPrefill(prefill: TrackPrefill) {
+        chargedAt = prefill.chargedAt
+        prefill.preset?.let(::applyPreset)
+        // What the bank took, which beats the catalog's US price.
+        _formState.update {
+            it.copy(
+                name = prefill.name,
+                amount = formatAmountForInput(prefill.amount),
+                currency = prefill.currency,
+                firstChargeDate = it.cycleOrNull()?.let(::nextCharge) ?: it.firstChargeDate,
+            )
+        }
+    }
+
+    /** In whole cycles from the tracked charge, so an older charge still lands on a future date; else from today. */
+    private fun nextCharge(cycle: BillingCycle): LocalDate =
+        chargedAt?.let { cycle.nextBillingAfter(it, today().toEpochMillis()).toLocalDate() } ?: cycle.firstChargeFromToday()
+
     /**
      * Fills the form from a catalog entry. Catalog prices are US prices; services price by country, so in
      * another currency the amount is left for the user and the US price is only a hint, never converted.
@@ -171,7 +198,7 @@ class AddEditViewModel(
                 customCycleDays = (preset.defaultBillingCycle.customDays ?: 30).toString(),
                 // Most people adding a known service already pay for it; a trial is opt-in.
                 isFreeTrial = false,
-                firstChargeDate = preset.defaultBillingCycle.firstChargeFromToday(),
+                firstChargeDate = nextCharge(preset.defaultBillingCycle),
                 cancellationUrl = preset.cancellationUrl,
                 suggestedTrialDays = preset.defaultTrialDays ?: DEFAULT_TRIAL_DAYS,
                 colorHex = preset.colorHex,
@@ -192,7 +219,7 @@ class AddEditViewModel(
     fun onBillingCycleChange(type: BillingCycleType) =
         _formState.update {
             val next = it.copy(billingCycleType = type, customDaysError = null)
-            if (it.isFreeTrial) next else next.copy(firstChargeDate = next.cycleOrNull()?.firstChargeFromToday() ?: it.firstChargeDate)
+            if (it.isFreeTrial) next else next.copy(firstChargeDate = next.cycleOrNull()?.let(::nextCharge) ?: it.firstChargeDate)
         }
 
     fun onCustomCycleDaysChange(days: String) =
@@ -206,7 +233,7 @@ class AddEditViewModel(
                 if (isTrial) {
                     today().plusDays(it.suggestedTrialDays.toLong())
                 } else {
-                    it.cycleOrNull()?.firstChargeFromToday()
+                    it.cycleOrNull()?.let(::nextCharge)
                         ?: it.firstChargeDate
                 }
             it.copy(isFreeTrial = isTrial, firstChargeDate = date)
@@ -281,6 +308,7 @@ class AddEditViewModel(
             try {
                 if (existing == null) {
                     subscriptionRepository.insertSubscription(subscription)
+                    trackDetectionId?.let { inbox?.recordFirstCharge(it, subscription) }
                 } else {
                     subscriptionRepository.updateSubscription(subscription)
                 }
@@ -308,10 +336,12 @@ class AddEditViewModel(
         private val subscriptionIdToEdit: String? = null,
         private val primaryCurrency: Flow<String> = flowOf("USD"),
         private val exchangeRates: StateFlow<ExchangeRates?> = MutableStateFlow(null),
+        private val trackDetectionId: String? = null,
+        private val inbox: DetectionInbox? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AddEditViewModel(repository, subscriptionIdToEdit, primaryCurrency, exchangeRates) as T
+            AddEditViewModel(repository, subscriptionIdToEdit, primaryCurrency, exchangeRates, trackDetectionId, inbox) as T
     }
 }
 

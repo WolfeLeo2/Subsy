@@ -26,6 +26,7 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedListItem
@@ -105,6 +106,7 @@ fun SettingsScreen(
         detectorState = detectorState,
         spottedCount = spottedCount,
         onSetDetectionEnabled = viewModel::setDetectionEnabled,
+        onSetAccountHolderName = viewModel::setAccountHolderName,
         onNavigateBack = onNavigateBack,
         onOpenCategories = onOpenCategories,
         modifier = modifier,
@@ -125,6 +127,7 @@ fun SettingsContent(
     detectorState: DetectorState,
     spottedCount: Int,
     onSetDetectionEnabled: (Boolean) -> Unit,
+    onSetAccountHolderName: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onOpenCategories: () -> Unit,
     modifier: Modifier = Modifier,
@@ -143,6 +146,7 @@ fun SettingsContent(
     var showModePicker by rememberSaveable { mutableStateOf(false) }
     var showBudgetEditor by rememberSaveable { mutableStateOf(false) }
     var showThemePicker by rememberSaveable { mutableStateOf(false) }
+    var showHolderEditor by rememberSaveable { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -264,7 +268,7 @@ fun SettingsContent(
                 SegmentedListItem(
                     checked = settings.detectionEnabled,
                     onCheckedChange = onSetDetectionEnabled,
-                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = if (settings.detectionEnabled) 3 else 1),
+                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = if (settings.detectionEnabled) 4 else 1),
                     supportingContent = { Text(detectionStatus(settings.detectionEnabled, detectorState, spottedCount)) },
                     trailingContent = { Switch(checked = settings.detectionEnabled, onCheckedChange = null) },
                 ) {
@@ -275,7 +279,7 @@ fun SettingsContent(
                 item {
                     SegmentedListItem(
                         onClick = { if (!smsAllowed) smsPermission.launch(Manifest.permission.RECEIVE_SMS) },
-                        shapes = ListItemDefaults.segmentedShapes(index = 1, count = 3),
+                        shapes = ListItemDefaults.segmentedShapes(index = 1, count = 4),
                         supportingContent = { Text(stringResource(R.string.detection_sms_supporting)) },
                         trailingContent = { Text(accessLabel(smsAllowed)) },
                     ) {
@@ -285,11 +289,23 @@ fun SettingsContent(
                 item {
                     SegmentedListItem(
                         onClick = { if (!notificationsAllowed) openNotificationAccess(context) },
-                        shapes = ListItemDefaults.segmentedShapes(index = 2, count = 3),
+                        shapes = ListItemDefaults.segmentedShapes(index = 2, count = 4),
                         supportingContent = { Text(stringResource(R.string.detection_notifications_supporting)) },
                         trailingContent = { Text(accessLabel(notificationsAllowed)) },
                     ) {
                         Text(stringResource(R.string.detection_notifications))
+                    }
+                }
+                item {
+                    SegmentedListItem(
+                        onClick = { showHolderEditor = true },
+                        shapes = ListItemDefaults.segmentedShapes(index = 3, count = 4),
+                        supportingContent = { Text(stringResource(R.string.detection_holder_supporting)) },
+                        trailingContent = {
+                            Text(settings.accountHolderName.ifBlank { stringResource(R.string.detection_holder_none) })
+                        },
+                    ) {
+                        Text(stringResource(R.string.detection_holder))
                     }
                 }
             }
@@ -324,6 +340,16 @@ fun SettingsContent(
             }
         }
 
+        if (showHolderEditor) {
+            AccountHolderDialog(
+                current = settings.accountHolderName,
+                onSave = {
+                    onSetAccountHolderName(it)
+                    showHolderEditor = false
+                },
+                onDismiss = { showHolderEditor = false },
+            )
+        }
         if (showThemePicker) {
             ThemePickerDialog(
                 selected = settings.themeMode,
@@ -367,6 +393,30 @@ fun SettingsContent(
             )
         }
     }
+}
+
+/** Banks print the user's own name on transfers between their accounts ("received from JOHN KAMAU"). */
+@Composable
+private fun AccountHolderDialog(
+    current: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by rememberSaveable { mutableStateOf(current) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.detection_holder)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                singleLine = true,
+                supportingText = { Text(stringResource(R.string.detection_holder_hint)) },
+            )
+        },
+        confirmButton = { TextButton(onClick = { onSave(name) }) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
 }
 
 @Composable
@@ -528,6 +578,7 @@ fun SettingsScreenPreview() {
             detectorState = DetectorState.Absent,
             spottedCount = 0,
             onSetDetectionEnabled = {},
+            onSetAccountHolderName = {},
             onNavigateBack = {},
             onOpenCategories = {},
         )

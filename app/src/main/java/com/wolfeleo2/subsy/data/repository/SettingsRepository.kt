@@ -32,6 +32,10 @@ data class UserSettings(
     val spreadLongCharges: Boolean = true,
     /** The user opted in to reading bank messages on the phone; the model downloads while this is on. */
     val detectionEnabled: Boolean = false,
+    /** The user's name as banks print it; money to or from it is a transfer between their own accounts. */
+    val accountHolderName: String = "",
+    /** The one-time detection screen after the mode chooser was answered (on or not now). */
+    val detectionIntroSeen: Boolean = false,
 ) {
     val budgetPlan: BudgetPlan get() = BudgetPlan(monthlyBudget, budgetOverrides)
 }
@@ -59,6 +63,8 @@ class SettingsRepository(
                 budgetOverrides = prefs[BUDGET_OVERRIDES].orEmpty().mapNotNull(::parseOverride).toMap(),
                 spreadLongCharges = prefs[SPREAD_LONG_CHARGES] ?: true,
                 detectionEnabled = prefs[DETECTION_ENABLED] ?: false,
+                accountHolderName = prefs[ACCOUNT_HOLDER_NAME] ?: "",
+                detectionIntroSeen = prefs[DETECTION_INTRO_SEEN] ?: false,
             )
         }
 
@@ -95,6 +101,14 @@ class SettingsRepository(
 
     suspend fun setDetectionEnabled(enabled: Boolean) {
         store.edit { it[DETECTION_ENABLED] = enabled }
+    }
+
+    suspend fun setAccountHolderName(name: String) {
+        store.edit { it[ACCOUNT_HOLDER_NAME] = name.trim() }
+    }
+
+    suspend fun setDetectionIntroSeen() {
+        store.edit { it[DETECTION_INTRO_SEEN] = true }
     }
 
     suspend fun setMonthlyBudget(budget: Money?) {
@@ -135,6 +149,8 @@ class SettingsRepository(
         val BUDGET_OVERRIDES = stringSetPreferencesKey("budget_overrides")
         val SPREAD_LONG_CHARGES = booleanPreferencesKey("spread_long_charges")
         val DETECTION_ENABLED = booleanPreferencesKey("detection_enabled")
+        val ACCOUNT_HOLDER_NAME = stringPreferencesKey("account_holder_name")
+        val DETECTION_INTRO_SEEN = booleanPreferencesKey("detection_intro_seen")
         val REMINDERS_SENT = stringSetPreferencesKey("reminders_sent")
         val PRIMARY_CURRENCY = stringPreferencesKey("primary_currency")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")

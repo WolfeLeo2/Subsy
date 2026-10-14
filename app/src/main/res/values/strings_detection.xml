@@ -21,4 +21,35 @@
     <string name="detection_access_needed">Tap to allow</string>
     <!-- Shown in Android's notification access settings -->
     <string name="detection_listener_label">Subsy charge detection</string>
+    <!-- Card and notification. %1$s amount with currency, %2$s merchant or subscription -->
+    <string name="detection_spent">Spotted %1$s to %2$s</string>
+    <string name="detection_spent_no_merchant">Spotted %1$s</string>
+    <string name="detection_received">Received %1$s from %2$s</string>
+    <string name="detection_received_no_merchant">Received %1$s</string>
+    <!-- %1$s subscription name -->
+    <string name="detection_log_subscription">Log it as your %1$s payment?</string>
+    <string name="detection_log_expense">Log it as an expense?</string>
+    <string name="detection_log_income">Log it as income?</string>
+    <!-- %1$s service name, from the catalog or the merchant -->
+    <string name="detection_track_question">Looks like a subscription. Track %1$s?</string>
+    <string name="detection_action_track">Track it</string>
+    <string name="detection_action_log">Log it</string>
+    <string name="detection_action_ignore">Ignore</string>
+    <string name="detection_channel_name">Spotted charges</string>
+    <string name="detection_channel_description">Charges read from bank and M-Pesa messages, waiting for you to log them</string>
+    <!-- Settings: the user's own name, for transfers between their accounts -->
+    <string name="detection_holder">Your name on bank messages</string>
+    <string name="detection_holder_supporting">Money to or from this name counts as moving your own money</string>
+    <string name="detection_holder_none">Not set</string>
+    <string name="detection_holder_hint">As your bank prints it, for example JOHN KAMAU</string>
+    <!-- One-time screen after the mode chooser -->
+    <string name="detection_intro_title">Spot charges for you?</string>
+    <string name="detection_intro_body">Subsy can read bank and M-Pesa messages as they arrive and offer to log each charge with one tap. It stays off until you turn it on.</string>
+    <string name="detection_intro_reads">Reads new text messages and bank app notifications. Old messages are never read.</string>
+    <!-- %1$s download size, e.g. 98 MB -->
+    <string name="detection_intro_download">Downloads a %1$s reading model once, over Wi-Fi.</string>
+    <string name="detection_intro_private">Messages are read on this phone and never leave it.</string>
+    <string name="detection_intro_restricted">If Android says a setting is restricted, open Subsy\'s App info, tap the menu in the top corner, then Allow restricted settings.</string>
+    <string name="detection_intro_turn_on">Turn on</string>
+    <string name="detection_intro_not_now">Not now</string>
 </resources>

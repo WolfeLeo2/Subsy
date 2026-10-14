@@ -6,6 +6,7 @@ import com.wolfeleo2.subsy.data.model.PaymentRecord
 import com.wolfeleo2.subsy.data.model.Subscription
 import com.wolfeleo2.subsy.data.model.SubscriptionStatus
 import com.wolfeleo2.subsy.data.model.Transaction
+import com.wolfeleo2.subsy.data.model.TransactionType
 import com.wolfeleo2.subsy.data.repository.BudgetRepository
 import com.wolfeleo2.subsy.data.repository.CategoryRepository
 import com.wolfeleo2.subsy.data.repository.PaymentRecordRepository
@@ -141,6 +142,15 @@ class FakeTransactionRepository : TransactionRepository {
     override suspend fun delete(id: String) {
         items.value = items.value.filterNot { it.id == id }
     }
+
+    override suspend fun rememberedCategory(
+        merchant: String,
+        type: TransactionType,
+    ): String? =
+        items.value
+            .filter { it.merchant.equals(merchant, ignoreCase = true) && it.type == type }
+            .maxByOrNull { it.date }
+            ?.categoryKey
 }
 
 class FakeCategoryRepository : CategoryRepository {

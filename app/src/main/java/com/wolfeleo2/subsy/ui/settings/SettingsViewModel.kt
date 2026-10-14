@@ -64,6 +64,10 @@ class SettingsViewModel(
         }
     }
 
+    fun setAccountHolderName(name: String) {
+        viewModelScope.launch { settingsRepository.setAccountHolderName(name) }
+    }
+
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }

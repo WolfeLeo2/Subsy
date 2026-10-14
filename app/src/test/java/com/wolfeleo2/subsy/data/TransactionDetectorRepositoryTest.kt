@@ -1,11 +1,8 @@
 package com.wolfeleo2.subsy.data
 
 import com.wolfeleo2.subsy.data.local.dao.DetectedTransactionDao
-import com.wolfeleo2.subsy.data.local.dao.PaymentRecordDao
 import com.wolfeleo2.subsy.data.local.entity.DetectedTransactionEntity
-import com.wolfeleo2.subsy.data.local.entity.PaymentRecordEntity
 import com.wolfeleo2.subsy.data.model.DetectedTransaction
-import com.wolfeleo2.subsy.data.model.PaymentStatus
 import com.wolfeleo2.subsy.data.model.TransactionSource
 import com.wolfeleo2.subsy.data.repository.DefaultTransactionDetectorRepository
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +12,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -74,47 +70,13 @@ class TransactionDetectorRepositoryTest {
         ): Boolean = storage.values.any { it.amount == amount && it.currency == currency && it.detectedAt in from..to }
     }
 
-    private class FakePaymentRecordDao : PaymentRecordDao {
-        val storage = mutableMapOf<String, PaymentRecordEntity>()
-
-        override fun getPaymentRecordsForSubscription(subscriptionId: String): Flow<List<PaymentRecordEntity>> =
-            MutableStateFlow(emptyList())
-
-        override fun getAllPaymentRecords(): Flow<List<PaymentRecordEntity>> = MutableStateFlow(storage.values.toList())
-
-        override fun getPaymentRecordsBetween(
-            startDate: Long,
-            endDate: Long,
-        ): Flow<List<PaymentRecordEntity>> = MutableStateFlow(emptyList())
-
-        override fun getTotalSpentForSubscription(subscriptionId: String): Flow<Double?> = MutableStateFlow(null)
-
-        override fun getTotalSpentAllTime(): Flow<Double?> = MutableStateFlow(null)
-
-        override suspend fun insertPaymentRecord(record: PaymentRecordEntity) {
-            storage[record.id] = record
-        }
-
-        override suspend fun insertPaymentRecords(records: List<PaymentRecordEntity>) {
-            records.forEach { storage[it.id] = it }
-        }
-
-        override suspend fun deletePaymentRecord(record: PaymentRecordEntity) {
-            storage.remove(record.id)
-        }
-
-        override suspend fun deletePaymentRecordsForSubscription(subscriptionId: String) {}
-    }
-
     private lateinit var fakeTxDao: FakeDetectedTransactionDao
-    private lateinit var fakePaymentDao: FakePaymentRecordDao
     private lateinit var repository: DefaultTransactionDetectorRepository
 
     @Before
     fun setup() {
         fakeTxDao = FakeDetectedTransactionDao()
-        fakePaymentDao = FakePaymentRecordDao()
-        repository = DefaultTransactionDetectorRepository(fakeTxDao, fakePaymentDao)
+        repository = DefaultTransactionDetectorRepository(fakeTxDao)
     }
 
     @Test
@@ -136,34 +98,6 @@ class TransactionDetectorRepositoryTest {
             val unprocessed = repository.getUnprocessedTransactions().first()
             assertEquals(1, unprocessed.size)
             assertEquals("Spotify", unprocessed.first().merchantName)
-        }
-
-    @Test
-    fun confirmTransactionCreatesPaymentRecordAndMarksProcessed() =
-        runTest {
-            val tx =
-                DetectedTransaction(
-                    id = "tx-100",
-                    merchantName = "Netflix",
-                    amount = 15.49,
-                    rawMessage = "Charged $15.49 by Netflix",
-                    source = TransactionSource.NOTIFICATION,
-                    detectedAt = 5000L,
-                )
-            repository.recordDetectedTransaction(tx)
-
-            val payment = repository.confirmTransaction("tx-100", "sub-netflix", "USD")
-            assertNotNull(payment)
-            assertEquals("sub-netflix", payment?.subscriptionId)
-            assertEquals(15.49, payment?.amount ?: 0.0, 0.001)
-            assertEquals(PaymentStatus.CONFIRMED, payment?.status)
-
-            // Payment record saved in payment DAO
-            assertTrue(fakePaymentDao.storage.isNotEmpty())
-
-            // Transaction marked as processed
-            val unprocessed = repository.getUnprocessedTransactions().first()
-            assertTrue(unprocessed.isEmpty())
         }
 
     @Test
@@ -189,7 +123,7 @@ class TransactionDetectorRepositoryTest {
         }
 
     @Test
-    fun ignoreTransactionMarksItAsProcessed() =
+    fun markProcessedHidesItFromTheUnprocessedList() =
         runTest {
             val tx =
                 DetectedTransaction(
@@ -201,7 +135,7 @@ class TransactionDetectorRepositoryTest {
                 )
             repository.recordDetectedTransaction(tx)
 
-            repository.ignoreTransaction("tx-200")
+            repository.markProcessed("tx-200")
 
             val unprocessed = repository.getUnprocessedTransactions().first()
             assertTrue(unprocessed.isEmpty())

@@ -22,6 +22,12 @@ sealed interface Screen {
     @Serializable
     data object AddSubscription : Screen
 
+    /** The add form started from a spotted charge (Track it); saving records that charge as the first payment. */
+    @Serializable
+    data class TrackSpottedCharge(
+        val detectionId: String,
+    ) : Screen
+
     @Serializable
     data class EditSubscription(
         val subscriptionId: String,
