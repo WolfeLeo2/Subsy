@@ -52,6 +52,11 @@ android {
         .getByName("androidTest")
         .assets.directories
         .add("$projectDir/schemas")
+    // ChargeModelDeviceTest reuses the JVM tests' detection fixtures rather than a copy.
+    sourceSets
+        .getByName("androidTest")
+        .resources.directories
+        .add("$projectDir/src/test/resources")
 }
 
 ksp {

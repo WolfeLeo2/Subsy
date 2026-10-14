@@ -52,8 +52,9 @@ Read bank and mobile money messages (SMS and app notifications) on the phone and
 | Model choice, training, eval | Done: `eval/` |
 | Export to ONNX and proof of equivalence | Done: `eval/reference.py`, `eval/unigram.py` |
 | Kotlin port (split, tokenize, decode, ONNX wrapper) | Done: `app/.../detection/`, JVM tests pass |
-| `ChargeModel` running on a phone | Written, **not yet run on a device** |
-| Model download, SMS receiver, notification listener, Room v5, confirm card, onboarding | Not started; planned below |
+| Model download (`ModelRepository`, `ModelDownloadWorker`) and the Settings opt-in switch | Built; release assets for `detector-v1` must be published |
+| `ChargeModel` running on a phone | `ChargeModelDeviceTest` written, **not yet run on a device** |
+| SMS receiver, notification listener, guards, Room v5, confirm card, onboarding | Not started; planned below |
 
 ### Why a small fine-tuned model, not rules and not an LLM
 The user wanted detection that works outside Kenya without per-country rules, tells money in from money out, and suggests categories. Every candidate was scored by the same eval (`eval/run_eval.py`) on 42 messages: 14 real Kenyan SMS plus 28 synthetic ones, including other countries and non-money texts. The pass bar was kind ≥ 90%, exact amount ≥ 95% and zero false positives.
@@ -105,6 +106,21 @@ Steps D to J are built (`detection/`). The rest is planned.
 | `vocab.tsv` | 4.5 MB | Unigram vocabulary: `unk_id` and `min_score` rows, then `id  piece  score` rows |
 | `spec.json` | ~45 KB | `prefix_ids` (the schema prompt as token ids), label order for kinds and categories, entity order, thresholds |
 
+**How the files reach the phone:**
+- **Opt-in only.** The Settings switch "Spot charges in bank messages" stores `detection_enabled` in DataStore and calls `ModelRepository.download()`. Turning it off calls `remove()`, which cancels the work and deletes the files.
+- **Source.** GitHub release assets on `WolfeLeo2/Subsy`. Tag, size and SHA-256 per file are in `DetectorRelease`.
+- **Worker.** `ModelDownloadWorker` is unique work that runs only on unmetered networks with storage not low.
+  - Each file streams into `<name>.part` and resumes with an HTTP `Range` after an interruption.
+  - It's renamed into place only when its size and SHA-256 match, so "file present" means "verified".
+  - Network errors and checksum failures retry with backoff, up to 5 attempts, then the state becomes Failed.
+  - No foreground service: a run stopped at WorkManager's 10-minute limit resumes from the bytes on disk.
+- **Storage.** `noBackupFilesDir/detector/<tag>/`, which is never in cloud backups. Older tags are deleted when a download starts.
+
+To publish a new export:
+1. `gh release create detector-vN eval/artifacts/detector/{spec.json,vocab.tsv,heads.onnx,encoder.int8.onnx}`.
+2. Update `DetectorRelease.TAG` and the sizes and hashes (`shasum -a 256`).
+3. Regenerate the test resources (step 6 under "Retraining" below).
+
 The schema is frozen at export: three entities (amount, merchant, reference) and two classifications (kind with 4 labels, category with 14). Changing any label, description or order means retraining, re-exporting and regenerating the test resources. The prompt is baked into `prefix_ids` and into marker positions inside `heads.onnx`.
 
 ### What the Kotlin code does (`app/src/main/java/com/wolfeleo2/subsy/detection/`)
@@ -142,7 +158,14 @@ How it works, with the rules that are easy to get wrong:
 | HF tokenizer and `unigram.py` | `unigram.py` on every distinct word | 3,736/3,736 identical |
 | Python and Kotlin split plus tokenize | `DetectionPortTest.splitsAndTokenizes...` on 1,400+ synthetic messages | passes |
 | Python and Kotlin decode | `DetectionPortTest.decodesHeadOutputs...` on 47 fixtures | passes |
-| ONNX on a phone | none yet | **not checked**; add an androidTest once the files can be on a device |
+| Python and ONNX on a phone | `ChargeModelDeviceTest` (androidTest) on the 47 fixtures, allowing up to 5% int8 rounding flips; logs load time and ms per message | **not run yet** |
+
+Run the device test without uninstalling the app. `connectedDebugAndroidTest` uninstalls it afterwards, which wipes its data, including the downloaded model:
+```sh
+./gradlew :app:installDebug :app:installDebugAndroidTest
+adb shell am instrument -w -e class com.wolfeleo2.subsy.detection.ChargeModelDeviceTest \
+  com.wolfeleo2.subsy.test/androidx.test.runner.AndroidJUnitRunner
+```
 
 The int8 encoder is not bit-identical to fp32. On 342 messages it changed 10 kinds and 8 categories, and never an amount. Plain (per-tensor) int8 changed 30 kinds, so `onnx_encoder.py` uses per-channel quantization.
 

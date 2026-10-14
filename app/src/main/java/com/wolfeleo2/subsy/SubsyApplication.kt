@@ -22,6 +22,7 @@ import com.wolfeleo2.subsy.data.repository.PaymentRecordRepository
 import com.wolfeleo2.subsy.data.repository.SettingsRepository
 import com.wolfeleo2.subsy.data.repository.SubscriptionRepository
 import com.wolfeleo2.subsy.data.repository.TransactionRepository
+import com.wolfeleo2.subsy.detection.ModelRepository
 import com.wolfeleo2.subsy.worker.DailyWorker
 
 class SubsyApplication :
@@ -36,6 +37,7 @@ class SubsyApplication :
     val budgetRepository: BudgetRepository by lazy { DefaultBudgetRepository(database.categoryBudgetDao()) }
     val settingsRepository by lazy { SettingsRepository(this) }
     val exchangeRateRepository by lazy { ExchangeRateRepository(filesDir.resolve("exchange_rates.json")) }
+    val modelRepository by lazy { ModelRepository(this) }
 
     override fun onCreate() {
         super.onCreate()

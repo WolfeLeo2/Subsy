@@ -30,6 +30,8 @@ data class UserSettings(
     val budgetOverrides: Map<YearMonth, Money> = emptyMap(),
     /** Count quarterly and yearly subscription charges as a share in each month they cover, in budgets and charts. */
     val spreadLongCharges: Boolean = true,
+    /** The user opted in to reading bank messages on the phone; the model downloads while this is on. */
+    val detectionEnabled: Boolean = false,
 ) {
     val budgetPlan: BudgetPlan get() = BudgetPlan(monthlyBudget, budgetOverrides)
 }
@@ -56,6 +58,7 @@ class SettingsRepository(
                     },
                 budgetOverrides = prefs[BUDGET_OVERRIDES].orEmpty().mapNotNull(::parseOverride).toMap(),
                 spreadLongCharges = prefs[SPREAD_LONG_CHARGES] ?: true,
+                detectionEnabled = prefs[DETECTION_ENABLED] ?: false,
             )
         }
 
@@ -88,6 +91,10 @@ class SettingsRepository(
 
     suspend fun setSpreadLongCharges(enabled: Boolean) {
         store.edit { it[SPREAD_LONG_CHARGES] = enabled }
+    }
+
+    suspend fun setDetectionEnabled(enabled: Boolean) {
+        store.edit { it[DETECTION_ENABLED] = enabled }
     }
 
     suspend fun setMonthlyBudget(budget: Money?) {
@@ -127,6 +134,7 @@ class SettingsRepository(
     private companion object {
         val BUDGET_OVERRIDES = stringSetPreferencesKey("budget_overrides")
         val SPREAD_LONG_CHARGES = booleanPreferencesKey("spread_long_charges")
+        val DETECTION_ENABLED = booleanPreferencesKey("detection_enabled")
         val REMINDERS_SENT = stringSetPreferencesKey("reminders_sent")
         val PRIMARY_CURRENCY = stringPreferencesKey("primary_currency")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")

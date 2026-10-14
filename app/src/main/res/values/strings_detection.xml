@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detection_section">Charge detection</string>
+    <string name="detection_switch">Spot charges in bank messages</string>
+    <!-- %1$s download size, e.g. 98 MB -->
+    <string name="detection_off">Reads bank and M-Pesa messages on this phone to offer one-tap logging. Downloads %1$s once, over Wi-Fi.</string>
+    <string name="detection_waiting">Waiting for Wi-Fi to download</string>
+    <!-- %1$d percent downloaded -->
+    <string name="detection_downloading">Downloading, %1$d%%</string>
+    <string name="detection_ready">Downloaded. Messages never leave this phone.</string>
+    <string name="detection_failed">Download failed. Turn it off and on to try again.</string>
+</resources>

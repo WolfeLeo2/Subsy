@@ -1,5 +1,6 @@
 package com.wolfeleo2.subsy.ui.settings
 
+import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,6 +43,8 @@ import com.wolfeleo2.subsy.data.model.ThemeMode
 import com.wolfeleo2.subsy.data.model.convertTo
 import com.wolfeleo2.subsy.data.repository.ExchangeRates
 import com.wolfeleo2.subsy.data.repository.UserSettings
+import com.wolfeleo2.subsy.detection.DetectorRelease
+import com.wolfeleo2.subsy.detection.DetectorState
 import com.wolfeleo2.subsy.ui.components.BudgetDialog
 import com.wolfeleo2.subsy.ui.components.LoadingState
 import com.wolfeleo2.subsy.ui.components.SectionHeader
@@ -67,6 +70,7 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val rates by viewModel.exchangeRates.collectAsStateWithLifecycle()
+    val detectorState by viewModel.detectorState.collectAsStateWithLifecycle()
 
     val current = settings
     if (current == null) {
@@ -83,6 +87,8 @@ fun SettingsScreen(
         onSetSpreadLongCharges = viewModel::setSpreadLongCharges,
         onSetUseDynamicColor = viewModel::setUseDynamicColor,
         onSetThemeMode = viewModel::setThemeMode,
+        detectorState = detectorState,
+        onSetDetectionEnabled = viewModel::setDetectionEnabled,
         onNavigateBack = onNavigateBack,
         onOpenCategories = onOpenCategories,
         modifier = modifier,
@@ -100,6 +106,8 @@ fun SettingsContent(
     onSetSpreadLongCharges: (Boolean) -> Unit,
     onSetUseDynamicColor: (Boolean) -> Unit,
     onSetThemeMode: (ThemeMode) -> Unit,
+    detectorState: DetectorState,
+    onSetDetectionEnabled: (Boolean) -> Unit,
     onNavigateBack: () -> Unit,
     onOpenCategories: () -> Unit,
     modifier: Modifier = Modifier,
@@ -223,6 +231,18 @@ fun SettingsContent(
                     },
                 ) {
                     Text(stringResource(R.string.settings_rates))
+                }
+            }
+            item { SectionHeader(stringResource(R.string.detection_section)) }
+            item {
+                SegmentedListItem(
+                    checked = settings.detectionEnabled,
+                    onCheckedChange = onSetDetectionEnabled,
+                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+                    supportingContent = { Text(detectionStatus(settings.detectionEnabled, detectorState)) },
+                    trailingContent = { Switch(checked = settings.detectionEnabled, onCheckedChange = null) },
+                ) {
+                    Text(stringResource(R.string.detection_switch))
                 }
             }
             item { SectionHeader(stringResource(R.string.settings_section_appearance)) }
@@ -396,6 +416,23 @@ private fun ThemePickerDialog(
     )
 }
 
+/** What the detection row says under its title: what turning it on costs, or how the download is going. */
+@Composable
+private fun detectionStatus(
+    enabled: Boolean,
+    state: DetectorState,
+): String {
+    val size = Formatter.formatShortFileSize(LocalContext.current, DetectorRelease.totalBytes)
+    return when {
+        !enabled -> stringResource(R.string.detection_off, size)
+        state is DetectorState.Downloading ->
+            stringResource(R.string.detection_downloading, (state.doneBytes * 100 / DetectorRelease.totalBytes).toInt())
+        state == DetectorState.Ready -> stringResource(R.string.detection_ready)
+        state == DetectorState.Failed -> stringResource(R.string.detection_failed)
+        else -> stringResource(R.string.detection_waiting)
+    }
+}
+
 private fun currencyName(code: String): String =
     runCatching {
         Currency.getInstance(code).getDisplayName(Locale.getDefault())
@@ -420,6 +457,8 @@ fun SettingsScreenPreview() {
             onSetSpreadLongCharges = {},
             onSetUseDynamicColor = {},
             onSetThemeMode = {},
+            detectorState = DetectorState.Absent,
+            onSetDetectionEnabled = {},
             onNavigateBack = {},
             onOpenCategories = {},
         )

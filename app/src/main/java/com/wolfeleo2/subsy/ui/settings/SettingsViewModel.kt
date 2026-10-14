@@ -9,6 +9,8 @@ import com.wolfeleo2.subsy.data.model.ThemeMode
 import com.wolfeleo2.subsy.data.repository.ExchangeRates
 import com.wolfeleo2.subsy.data.repository.SettingsRepository
 import com.wolfeleo2.subsy.data.repository.UserSettings
+import com.wolfeleo2.subsy.detection.DetectorState
+import com.wolfeleo2.subsy.detection.ModelRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -17,6 +19,7 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     val exchangeRates: StateFlow<ExchangeRates?>,
+    private val modelRepository: ModelRepository,
 ) : ViewModel() {
     val settings: StateFlow<UserSettings?> =
         settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -45,6 +48,17 @@ class SettingsViewModel(
         viewModelScope.launch { settingsRepository.setSpreadLongCharges(enabled) }
     }
 
+    val detectorState: StateFlow<DetectorState> =
+        modelRepository.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DetectorState.Absent)
+
+    /** Opting in downloads the model over Wi-Fi; opting out deletes it. Turning it on again retries a failed download. */
+    fun setDetectionEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setDetectionEnabled(enabled)
+            if (enabled) modelRepository.download() else modelRepository.remove()
+        }
+    }
+
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
@@ -52,8 +66,10 @@ class SettingsViewModel(
     class Factory(
         private val settingsRepository: SettingsRepository,
         private val exchangeRates: StateFlow<ExchangeRates?>,
+        private val modelRepository: ModelRepository,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = SettingsViewModel(settingsRepository, exchangeRates) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            SettingsViewModel(settingsRepository, exchangeRates, modelRepository) as T
     }
 }
