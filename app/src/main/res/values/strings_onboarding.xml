@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_title">What do you want to track?</string>
+    <string name="onboarding_body">Subsy keeps your data on this phone. Pick one to start.</string>
+    <string name="onboarding_change_later">You can switch in Settings at any time. Nothing is deleted when you do.</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="mode_subscriptions">Subscriptions</string>
+    <string name="mode_subscriptions_description">Subscriptions and free trials, with reminders before they renew.</string>
+    <string name="mode_all_spending">All spending</string>
+    <string name="mode_all_spending_description">Everything in Subscriptions, plus everyday expenses and income.</string>
+</resources>

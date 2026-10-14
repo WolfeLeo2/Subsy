@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reminder_channel_name">Renewal reminders</string>
+    <string name="reminder_channel_description">Alerts before a free trial ends or a subscription renews.</string>
+    <string name="reminder_action_cancel">Jump to Cancel Page</string>
+    <string name="reminder_trial_today">Free trial ends today</string>
+    <string name="reminder_trial_tomorrow">Free trial ends tomorrow</string>
+    <string name="reminder_renews_today">Renews today</string>
+    <string name="reminder_renews_tomorrow">Renews tomorrow</string>
+    <plurals name="reminder_trial_days">
+        <item quantity="one">Free trial ends in %d day</item>
+        <item quantity="other">Free trial ends in %d days</item>
+    </plurals>
+    <plurals name="reminder_renews_days">
+        <item quantity="one">Renews in %d day</item>
+        <item quantity="other">Renews in %d days</item>
+    </plurals>
+</resources>

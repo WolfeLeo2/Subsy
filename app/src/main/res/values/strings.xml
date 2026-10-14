@@ -1,0 +1,115 @@
+<resources>
+    <string name="app_name">Subsy</string>
+
+    <!-- Shared actions -->
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_discard">Discard</string>
+    <string name="action_keep_editing">Keep editing</string>
+    <string name="action_more">More options</string>
+    <string name="action_add_subscription">Add subscription</string>
+    <string name="error_open_link">Couldn\'t open that link. Check the address in Edit.</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Subscriptions</string>
+    <string name="nav_analytics">Spending</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Filters -->
+    <string name="filter_all">All</string>
+    <string name="filter_active">Active</string>
+    <string name="filter_trials">Trials</string>
+    <string name="filter_paused">Paused</string>
+
+    <!-- Form validation -->
+    <string name="error_name_required">Enter a name</string>
+    <string name="error_amount_invalid">Enter an amount, like 9.99</string>
+    <string name="error_custom_days_invalid">Enter a number of days</string>
+    <string name="error_save_failed">Couldn\'t save. Try again.</string>
+
+    <!-- Categories -->
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_work">Work &amp; SaaS</string>
+    <string name="category_health">Health &amp; fitness</string>
+    <string name="category_utilities">Utilities</string>
+    <string name="category_personal">Personal</string>
+    <string name="category_other">Other</string>
+
+    <!-- Billing cycles -->
+    <string name="cycle_weekly">Weekly</string>
+    <string name="cycle_monthly">Monthly</string>
+    <string name="cycle_quarterly">Every 3 months</string>
+    <string name="cycle_biannually">Every 6 months</string>
+    <string name="cycle_yearly">Yearly</string>
+    <string name="cycle_custom">Custom</string>
+    <plurals name="cycle_every_days">
+        <item quantity="one">Every day</item>
+        <item quantity="other">Every %d days</item>
+    </plurals>
+    <string name="suffix_week">/wk</string>
+    <string name="suffix_month">/mo</string>
+    <string name="suffix_quarter">/3 mo</string>
+    <string name="suffix_half_year">/6 mo</string>
+    <string name="suffix_year">/yr</string>
+    <string name="suffix_days">/%d d</string>
+
+    <!-- Status -->
+    <string name="status_active">Active</string>
+    <string name="status_trial">Trial</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_cancelled">Cancelled</string>
+
+    <!-- What happens next -->
+    <string name="renews_today">Renews today</string>
+    <string name="renews_tomorrow">Renews tomorrow</string>
+    <plurals name="renews_in_days">
+        <item quantity="one">Renews in %d day</item>
+        <item quantity="other">Renews in %d days</item>
+    </plurals>
+    <string name="renews_on">Renews %s</string>
+    <plurals name="charge_overdue_days">
+        <item quantity="one">Charge was due %d day ago</item>
+        <item quantity="other">Charge was due %d days ago</item>
+    </plurals>
+    <string name="trial_ends_today">Trial ends today</string>
+    <string name="trial_ends_tomorrow">Trial ends tomorrow</string>
+    <plurals name="trial_ends_in_days">
+        <item quantity="one">Trial ends in %d day</item>
+        <item quantity="other">Trial ends in %d days</item>
+    </plurals>
+    <string name="trial_ended">Trial ended</string>
+
+    <!-- Burn-rate hero (Home and Spending) -->
+    <string name="hero_label">Monthly spend</string>
+    <string name="hero_yearly">%s a year</string>
+    <plurals name="hero_active">
+        <item quantity="one">%d active</item>
+        <item quantity="other">%d active</item>
+    </plurals>
+    <plurals name="hero_trials">
+        <item quantity="one">%d trial</item>
+        <item quantity="other">%d trials</item>
+    </plurals>
+    <!-- %1$s active count, %2$s trial count, e.g. "6 active, 1 trial" -->
+    <string name="hero_counts">%1$s, %2$s</string>
+    <!-- %d subscriptions beyond the logos shown -->
+    <string name="hero_more">+%d</string>
+    <!-- Screen reader text for the next-charge pill: %1$s name, %2$s when, %3$s amount -->
+    <string name="hero_next_description">Next: %1$s, %2$s, %3$s</string>
+    <plurals name="hero_trials_convert">
+        <item quantity="one">+%2$s/mo if your trial converts</item>
+        <item quantity="other">+%2$s/mo if %1$d trials convert</item>
+    </plurals>
+    <plurals name="hero_converted">
+        <item quantity="one">Includes %1$d subscription converted at rates from %2$s</item>
+        <item quantity="other">Includes %1$d subscriptions converted at rates from %2$s</item>
+    </plurals>
+    <plurals name="hero_other_currencies">
+        <item quantity="one">%d subscription in another currency isn\'t included until exchange rates load</item>
+        <item quantity="other">%d subscriptions in other currencies aren\'t included until exchange rates load</item>
+    </plurals>
+</resources>

@@ -1,0 +1,35 @@
+<resources>
+    <string name="detail_subtitle">%1$s · %2$s</string>
+    <string name="detail_edit">Edit</string>
+    <string name="detail_delete_title">Delete %s?</string>
+    <string name="detail_delete_body">This also deletes its payment history. You can\'t undo this.</string>
+    <string name="detail_payment_logged">Payment logged. Next charge %s</string>
+
+    <string name="detail_log_payment">Log payment</string>
+    <string name="detail_status_actions">Pause or cancel</string>
+    <string name="detail_pause">Pause</string>
+    <string name="detail_mark_cancelled">Mark as cancelled</string>
+    <string name="detail_resume">Resume</string>
+    <string name="detail_reactivate">Reactivate</string>
+
+    <string name="detail_trial_charge">You\'ll be charged %1$s on %2$s unless you cancel before then.</string>
+    <string name="detail_cancel_on_website">Cancel on website</string>
+
+    <string name="detail_section_details">Details</string>
+    <string name="detail_next_charge">Next charge</string>
+    <string name="detail_billing">Billing</string>
+    <string name="detail_per_month">Per month</string>
+    <string name="detail_tracking_since">Tracking since</string>
+    <string name="detail_manage_or_cancel">Manage or cancel</string>
+    <string name="detail_notes">Notes</string>
+
+    <string name="detail_section_payments">Payments</string>
+    <string name="detail_payment_manual">Logged by you</string>
+    <string name="detail_payment_auto">Logged automatically</string>
+    <string name="detail_payment_confirmed">Confirmed from a bank message</string>
+    <string name="detail_payments_empty">No payments yet. Tap Log payment after you\'re charged.</string>
+
+    <string name="detail_not_found_title">This subscription was deleted</string>
+    <string name="detail_not_found_body">It\'s no longer in your list.</string>
+    <string name="detail_back_to_list">Back to subscriptions</string>
+</resources>

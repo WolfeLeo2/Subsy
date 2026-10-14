@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_transactions">Transactions</string>
+    <string name="action_add_transaction">Add transaction</string>
+
+    <string name="spend_groceries">Groceries</string>
+    <string name="spend_dining">Eating out</string>
+    <string name="spend_transport">Transport</string>
+    <string name="spend_housing">Housing &amp; bills</string>
+    <string name="spend_mobile">Airtime &amp; data</string>
+    <string name="spend_shopping">Shopping</string>
+    <string name="spend_health">Health</string>
+    <string name="spend_entertainment">Entertainment</string>
+    <string name="spend_travel">Travel</string>
+    <string name="spend_education">Education</string>
+    <string name="spend_gifts">Gifts</string>
+    <string name="spend_other">Other</string>
+    <string name="spend_subscriptions">Subscriptions</string>
+    <string name="spend_salary">Salary</string>
+    <string name="spend_freelance">Freelance</string>
+    <string name="spend_refunds">Refunds</string>
+    <string name="spend_gifts_received">Gifts received</string>
+    <string name="spend_investments">Investments</string>
+    <string name="spend_other_income">Other income</string>
+
+    <string name="transactions_out">Spent</string>
+    <string name="transactions_in">Income</string>
+    <string name="transactions_net">Left over</string>
+    <string name="transactions_overspent">Overspent</string>
+    <string name="kind_expense">Expense</string>
+    <string name="kind_income">Income</string>
+    <string name="transactions_filter_expenses">Expenses</string>
+    <string name="transactions_filter_all">All</string>
+    <string name="transactions_previous_month">Previous month</string>
+    <string name="transactions_next_month">Next month</string>
+    <string name="transactions_today">Today</string>
+    <string name="transactions_yesterday">Yesterday</string>
+    <string name="transactions_subscription_payment">Subscription payment</string>
+    <!-- %s month and year, e.g. "October 2026" -->
+    <string name="transactions_month_empty">Nothing logged in %s.</string>
+    <string name="transactions_empty_title">No transactions yet</string>
+    <string name="transactions_empty_body">Log what you spend and earn, and Subsy adds it up by month and category.</string>
+    <!-- %s amount -->
+    <string name="transactions_deleted">Deleted %s</string>
+    <plurals name="transactions_unconverted">
+        <item quantity="one">%d item in another currency is not in these totals.</item>
+        <item quantity="other">%d items in other currencies are not in these totals.</item>
+    </plurals>
+
+    <string name="sheet_new_title">New transaction</string>
+    <string name="sheet_edit_title">Edit transaction</string>
+    <string name="sheet_amount">Amount</string>
+    <string name="sheet_date">Date</string>
+    <string name="sheet_note">Note</string>
+    <string name="sheet_note_hint">Where or what, optional</string>
+    <string name="sheet_category">Category</string>
+    <string name="sheet_new_category">New category</string>
+    <string name="error_category_required">Pick a category</string>
+
+    <string name="category_dialog_new">New category</string>
+    <string name="category_dialog_edit">Edit category</string>
+    <string name="category_dialog_name">Name</string>
+    <string name="category_dialog_color">Color</string>
+    <!-- %d swatch number, for screen readers -->
+    <string name="category_dialog_color_item">Color %d</string>
+    <string name="error_category_name_required">Enter a name</string>
+    <string name="categories_title">Categories</string>
+    <string name="categories_supporting">Your own categories for transactions</string>
+    <string name="categories_empty">You have not made any categories yet. Built-in ones cannot be changed.</string>
+    <string name="categories_delete">Delete category</string>
+    <!-- %1$s category being deleted, %2$s category its transactions move to -->
+    <string name="categories_delete_body">Transactions in %1$s move to %2$s.</string>
+    <string name="transactions_this_month">This month</string>
+    <string name="transactions_spent">Spent</string>
+    <string name="transactions_left_to_spend">Left to spend</string>
+    <string name="transactions_left_from_income">Left from income</string>
+    <!-- %1$s amount per day, %2$d days left in the month including today -->
+    <plurals name="transactions_per_day">
+        <item quantity="one">About %1$s for today, the last day of the month</item>
+        <item quantity="other">About %1$s a day for %2$d days</item>
+    </plurals>
+    <!-- %1$s spent, %2$s budget or income -->
+    <string name="transactions_spent_of">Spent %1$s of %2$s</string>
+    <!-- %s amount -->
+    <string name="transactions_spent_amount">Spent %s</string>
+    <!-- %s amount -->
+    <string name="transactions_budget_amount">Budget %s</string>
+    <!-- %s amount -->
+    <string name="transactions_income_amount">Income %s</string>
+    <string name="transactions_income_month">Income this month</string>
+</resources>

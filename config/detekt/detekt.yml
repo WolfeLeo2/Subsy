@@ -1,0 +1,17 @@
+style:
+  MagicNumber:
+    active: false
+  UnusedPrivateProperty:
+    active: true
+  UnusedPrivateFunction:
+    active: true
+
+naming:
+  FunctionNaming:
+    active: true
+    ignoreAnnotated: ['Composable']
+
+complexity:
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+    ignoreDefaultParameters: true

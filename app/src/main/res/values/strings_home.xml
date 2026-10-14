@@ -1,0 +1,15 @@
+<resources>
+    <string name="home_empty_title">No subscriptions yet</string>
+    <string name="home_empty_body">Add the services you pay for, and Subsy shows what they cost each month and when each one renews.</string>
+    <string name="home_section_trials">Free trials</string>
+    <string name="home_section_subscriptions">Subscriptions</string>
+    <plurals name="home_count">
+        <item quantity="one">%d plan</item>
+        <item quantity="other">%d plans</item>
+    </plurals>
+    <string name="home_filter_empty">Nothing matches this filter.</string>
+    <string name="home_row_supporting">%1$s · %2$s</string>
+    <string name="home_deleted">Deleted %s</string>
+    <string name="home_action_pause">Pause</string>
+    <string name="home_action_resume">Resume</string>
+</resources>

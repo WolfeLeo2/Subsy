@@ -1,0 +1,42 @@
+<resources>
+    <!-- Add/edit screen -->
+    <string name="addedit_title_new">New subscription</string>
+    <string name="addedit_title_edit">Edit subscription</string>
+    <string name="addedit_discard_title">Discard changes?</string>
+    <string name="addedit_name">Name</string>
+    <string name="addedit_pick_from_catalog">Pick from the catalog</string>
+    <string name="addedit_amount">Amount</string>
+    <string name="addedit_currency">Currency</string>
+    <string name="addedit_catalog_price_hint">%s in the US. Prices vary by country.</string>
+    <string name="addedit_catalog_price_hint_converted">%1$s in the US, about %2$s. Prices vary by country.</string>
+    <string name="addedit_about_price">about %s</string>
+    <string name="addedit_about_monthly">About %s a month</string>
+    <string name="addedit_section_billing">Billing</string>
+    <string name="addedit_repeats">Repeats</string>
+    <string name="addedit_every_days">Every how many days</string>
+    <string name="addedit_free_trial">Free trial</string>
+    <string name="addedit_free_trial_supporting">The first charge comes when the trial ends</string>
+    <plurals name="addedit_trial_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="addedit_trial_ends">Trial ends</string>
+    <string name="addedit_next_charge">Next charge</string>
+    <string name="addedit_change_date">Change date</string>
+    <string name="addedit_date_confirm">OK</string>
+    <string name="addedit_section_category">Category</string>
+    <string name="addedit_section_link_notes">Link and notes</string>
+    <string name="addedit_cancellation_page">Website or cancellation page</string>
+    <string name="addedit_cancellation_placeholder">example.com/account</string>
+    <string name="addedit_notes">Notes</string>
+
+    <!-- Catalog sheet -->
+    <string name="addedit_catalog_title">Add from the catalog</string>
+    <string name="addedit_search_placeholder">Search services</string>
+    <string name="addedit_clear_search">Clear search</string>
+    <string name="addedit_add_your_own">Add your own</string>
+    <string name="addedit_add_named_as_own">Add “%s” as your own</string>
+    <string name="addedit_no_match_title">No match for “%s”</string>
+    <string name="addedit_no_match_body">Add it as your own subscription instead.</string>
+    <string name="addedit_add_named">Add “%s”</string>
+</resources>

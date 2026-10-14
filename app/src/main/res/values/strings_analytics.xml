@@ -1,0 +1,85 @@
+<resources>
+    <string name="analytics_title">Spending</string>
+    <string name="analytics_empty_title">Nothing to break down yet</string>
+    <string name="analytics_empty_body">Add a subscription and Spending shows where your money goes each month.</string>
+    <string name="analytics_where_it_goes">Where it goes</string>
+    <!-- %1$s category, %2$s percent -->
+    <string name="analytics_share_item">%1$s %2$s</string>
+    <!-- %s comma-separated list of "Category percent" -->
+    <string name="analytics_bar_description">Monthly spend by category: %s</string>
+    <plurals name="analytics_subscription_count">
+        <item quantity="one">%d subscription</item>
+        <item quantity="other">%d subscriptions</item>
+    </plurals>
+    <string name="analytics_next_30_days">Next 30 days</string>
+    <string name="analytics_bucket_this_week">This week</string>
+    <string name="analytics_bucket_next_week">Next week</string>
+    <string name="analytics_bucket_later">Later</string>
+    <string name="analytics_no_renewals">Nothing renews in the next 30 days.</string>
+    <string name="analytics_by_month">By month</string>
+    <string name="analytics_average">Average %s</string>
+    <string name="analytics_range_months">%d months</string>
+    <string name="analytics_range_1m">1M</string>
+    <string name="analytics_range_3m">3M</string>
+    <string name="analytics_range_6m">6M</string>
+    <string name="analytics_range_12m">12M</string>
+    <string name="analytics_no_history">Payments appear here once Subsy has logged them.</string>
+    <!-- %1$d number of months, %2$s average amount -->
+    <string name="analytics_bars_description">Payments by month over the last %1$d months, averaging %2$s</string>
+    <plurals name="analytics_payments_unconverted">
+        <item quantity="one">%d payment in another currency is not included.</item>
+        <item quantity="other">%d payments in other currencies are not included.</item>
+    </plurals>
+    <string name="analytics_tile_yearly">Per year</string>
+    <string name="analytics_tile_trials">If trials convert</string>
+    <plurals name="analytics_tile_trials_count">
+        <item quantity="one">%d trial running</item>
+        <item quantity="other">%d trials running</item>
+    </plurals>
+    <!-- %s percent, e.g. "62%" -->
+    <string name="analytics_of_budget">%s of budget</string>
+    <!-- %1$s percent, %2$s budget amount -->
+    <string name="analytics_budget_used">%1$s of a %2$s budget used</string>
+    <string name="analytics_this_month">This month</string>
+    <string name="analytics_spent_this_month">Spent this month</string>
+    <!-- %1$s spent, %2$s budget -->
+    <string name="analytics_category_budget">%1$s of %2$s</string>
+    <!-- %1$s amount over, %2$s budget -->
+    <string name="analytics_category_over">%1$s over %2$s</string>
+    <!-- %s category name -->
+    <string name="analytics_set_budget">Set a budget for %s</string>
+    <!-- %1$s category name, %2$s budget -->
+    <string name="analytics_edit_budget">%1$s budget: %2$s</string>
+    <!-- %s category name -->
+    <string name="analytics_budget_dialog_title">%s budget</string>
+    <string name="analytics_no_spending">Nothing spent yet this month.</string>
+    <!-- %s currency code the budget was set in -->
+    <string name="analytics_budget_waiting">Your budget is in %s. It shows here once exchange rates load.</string>
+    <!-- %s percent -->
+    <string name="analytics_share_of_spending">%s of spending</string>
+    <string name="analytics_avg_per_month">a month on average</string>
+    <!-- %1$d months within budget, %2$d months with payments -->
+    <plurals name="analytics_within_budget_months">
+        <item quantity="one">Within budget in %1$d of %2$d month</item>
+        <item quantity="other">Within budget in %1$d of %2$d months</item>
+    </plurals>
+    <!-- %1$s total, %2$d months -->
+    <plurals name="analytics_total_over_months">
+        <item quantity="one">%1$s in total over %2$d month</item>
+        <item quantity="other">%1$s in total over %2$d months</item>
+    </plurals>
+    <!-- %s amount -->
+    <string name="analytics_over_budget_by">%s over budget</string>
+    <string name="analytics_within_budget">Within budget</string>
+    <string name="analytics_line_budget">Budget</string>
+    <string name="analytics_line_average">Avg</string>
+    <string name="analytics_spending_by_month">Spending by month</string>
+    <!-- %s amount -->
+    <string name="analytics_income_avg">Income averaged %s a month.</string>
+    <!-- %s month and year -->
+    <string name="analytics_set_month_budget">Set a budget for %s</string>
+    <!-- %1$s month and year, %2$s amount -->
+    <string name="analytics_edit_month_budget">%1$s budget: %2$s</string>
+    <!-- %s month and year -->
+    <string name="analytics_month_budget_title">Budget for %s</string>
+</resources>

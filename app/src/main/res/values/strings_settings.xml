@@ -1,0 +1,25 @@
+<resources>
+    <string name="settings_section_tracking">Tracking</string>
+    <string name="settings_mode">What Subsy tracks</string>
+    <string name="settings_budget">Monthly budget</string>
+    <string name="settings_budget_supporting">Spending shows how much of it you have used</string>
+    <string name="settings_budget_none">Not set</string>
+    <!-- %s currency code -->
+    <string name="settings_budget_field">Amount (%s)</string>
+    <string name="settings_budget_remove">Remove budget</string>
+    <string name="settings_section_money">Money</string>
+    <string name="settings_currency">Primary currency</string>
+    <string name="settings_currency_supporting">Totals are shown in %s.</string>
+    <string name="settings_rates">Rates by ExchangeRate-API</string>
+    <string name="settings_rates_updated">Updated %s</string>
+    <string name="settings_rates_not_loaded">Not loaded yet. Needs an internet connection once.</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System default</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_dynamic_color">Use wallpaper colors</string>
+    <string name="settings_dynamic_color_supporting">Replaces Subsy\'s green theme with colors from your wallpaper</string>
+    <string name="settings_spread">Spread yearly charges</string>
+    <string name="settings_spread_supporting">Count quarterly and yearly subscriptions a share each month on Spending, so one charge doesn\'t push a month over budget</string>
+</resources>
