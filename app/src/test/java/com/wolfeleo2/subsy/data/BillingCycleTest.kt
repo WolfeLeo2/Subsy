@@ -37,6 +37,17 @@ class BillingCycleTest {
     }
 
     @Test
+    fun everyTwoMonthsFollowsTheCalendarAndRoundTrips() {
+        val cycle = BillingCycle.BI_MONTHLY
+        assertEquals(cycle, BillingCycle.fromSerialized(cycle.serializedName))
+        // Anchored on Jan 31: Mar 31, then May 31, never drifting the way 60 days would.
+        val anchor = millis("2026-01-31")
+        assertEquals(LocalDate.parse("2026-03-31"), date(cycle.nextBillingAfter(anchor, millis("2026-02-15"), utc)))
+        assertEquals(LocalDate.parse("2026-05-31"), date(cycle.nextBillingAfter(anchor, millis("2026-04-01"), utc)))
+        assertEquals(50.0, cycle.normalizedMonthlyAmount(100.0), 0.0)
+    }
+
+    @Test
     fun normalizedMonthlyAmountCalculations() {
         // Monthly $15 stays $15
         assertEquals(15.0, BillingCycle.MONTHLY.normalizedMonthlyAmount(15.0), 0.001)

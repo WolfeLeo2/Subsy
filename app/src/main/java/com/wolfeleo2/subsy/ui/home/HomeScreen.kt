@@ -65,6 +65,7 @@ import com.wolfeleo2.subsy.ui.components.ConnectedButtonGroup
 import com.wolfeleo2.subsy.ui.components.EmptyState
 import com.wolfeleo2.subsy.ui.components.LoadingState
 import com.wolfeleo2.subsy.ui.components.MoneyText
+import com.wolfeleo2.subsy.ui.components.OneTimeHint
 import com.wolfeleo2.subsy.ui.components.SectionHeader
 import com.wolfeleo2.subsy.ui.components.ServiceIconView
 import com.wolfeleo2.subsy.ui.components.StatusBadge
@@ -232,7 +233,7 @@ private fun HomeList(
 
         if (state.trials.isNotEmpty()) {
             item(key = "trials-header") { SectionHeader(stringResource(R.string.home_section_trials), Modifier.animateItem()) }
-            subscriptionGroup(state.trials, onOpen, onDelete, onTogglePause)
+            subscriptionGroup(state.trials, hint = true, onOpen, onDelete, onTogglePause)
         }
         if (state.subscriptions.isNotEmpty()) {
             item(key = "subs-header") {
@@ -248,7 +249,7 @@ private fun HomeList(
                     },
                 )
             }
-            subscriptionGroup(state.subscriptions, onOpen, onDelete, onTogglePause)
+            subscriptionGroup(state.subscriptions, hint = state.trials.isEmpty(), onOpen, onDelete, onTogglePause)
         }
         if (state.trials.isEmpty() && state.subscriptions.isEmpty()) {
             item(key = "filter-empty") {
@@ -269,6 +270,7 @@ private fun HomeList(
 
 private fun LazyListScope.subscriptionGroup(
     subscriptions: List<Subscription>,
+    hint: Boolean,
     onOpen: (Subscription) -> Unit,
     onDelete: (Subscription) -> Unit,
     onTogglePause: (Subscription) -> Unit,
@@ -276,13 +278,18 @@ private fun LazyListScope.subscriptionGroup(
     itemsIndexed(subscriptions, key = { _, sub -> sub.id }) { index, sub ->
         Column(Modifier.animateItem()) {
             if (index > 0) Spacer(Modifier.height(ListItemDefaults.SegmentedGap))
-            SwipeableSubscriptionRow(
-                subscription = sub,
-                shapes = ListItemDefaults.segmentedShapes(index = index, count = subscriptions.size),
-                onOpen = { onOpen(sub) },
-                onDelete = { onDelete(sub) },
-                onTogglePause = { onTogglePause(sub) },
-            )
+            val row =
+                @Composable {
+                    SwipeableSubscriptionRow(
+                        subscription = sub,
+                        shapes = ListItemDefaults.segmentedShapes(index = index, count = subscriptions.size),
+                        onOpen = { onOpen(sub) },
+                        onDelete = { onDelete(sub) },
+                        onTogglePause = { onTogglePause(sub) },
+                    )
+                }
+            // The first row on screen carries the swipe hint.
+            if (hint && index == 0) OneTimeHint("home_swipe", stringResource(R.string.hint_home_swipe)) { row() } else row()
         }
     }
 }

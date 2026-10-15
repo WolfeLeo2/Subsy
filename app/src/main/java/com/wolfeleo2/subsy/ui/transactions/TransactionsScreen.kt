@@ -66,6 +66,7 @@ import com.wolfeleo2.subsy.ui.components.ConnectedButtonGroup
 import com.wolfeleo2.subsy.ui.components.EmptyState
 import com.wolfeleo2.subsy.ui.components.LoadingState
 import com.wolfeleo2.subsy.ui.components.MoneyText
+import com.wolfeleo2.subsy.ui.components.OneTimeHint
 import com.wolfeleo2.subsy.ui.components.ServiceIconView
 import com.wolfeleo2.subsy.ui.components.label
 import com.wolfeleo2.subsy.ui.home.SwipeBackground
@@ -213,7 +214,7 @@ private fun TransactionsList(
                 )
             }
         }
-        state.days.forEach { day -> dayGroup(day, onOpen, onDelete) }
+        state.days.forEachIndexed { i, day -> dayGroup(day, hint = i == 0, onOpen, onDelete) }
     }
 }
 
@@ -348,6 +349,7 @@ private fun MonthSummaryCard(
 
 private fun LazyListScope.dayGroup(
     day: DayGroup,
+    hint: Boolean,
     onOpen: (TransactionRow) -> Unit,
     onDelete: (TransactionRow) -> Unit,
 ) {
@@ -364,7 +366,13 @@ private fun LazyListScope.dayGroup(
             if (index > 0) Spacer(Modifier.height(ListItemDefaults.SegmentedGap))
             val shapes = ListItemDefaults.segmentedShapes(index, day.rows.size)
             if (row.transaction != null) {
-                SwipeableRow(row, shapes, onOpen = { onOpen(row) }, onDelete = { onDelete(row) })
+                val swipeable = @Composable { SwipeableRow(row, shapes, onOpen = { onOpen(row) }, onDelete = { onDelete(row) }) }
+                // The first swipeable row on screen carries the swipe hint.
+                if (hint && index == day.rows.indexOfFirst { it.transaction != null }) {
+                    OneTimeHint("transactions_swipe", stringResource(R.string.hint_transactions_swipe)) { swipeable() }
+                } else {
+                    swipeable()
+                }
             } else {
                 TransactionItem(row, shapes) { onOpen(row) }
             }

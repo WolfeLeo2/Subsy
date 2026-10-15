@@ -9,6 +9,8 @@ plugins {
     alias(libs.plugins.detekt)
 }
 
+val buildingRelease = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+
 android {
     namespace = "com.wolfeleo2.subsy"
     compileSdk {
@@ -20,24 +22,54 @@ android {
 
     defaultConfig {
         applicationId = "com.wolfeleo2.subsy"
-        minSdk = 33
+        minSdk = 31
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        // CI passes both from the release tag; local builds keep these defaults.
+        versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = (findProperty("versionName") as String?) ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
 
-        // onnxruntime ships a ~25-40 MB native library per ABI; 64-bit ARM phones only (no 32-bit, no emulators).
-        ndk {
-            abiFilters += "arm64-v8a"
+    // The release keystore never lives in the repo: CI decodes it from a secret and points these variables at it.
+    signingConfigs {
+        System.getenv("SUBSY_KEYSTORE_PATH")?.let { path ->
+            create("release") {
+                storeFile = file(path)
+                storePassword = System.getenv("SUBSY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("SUBSY_KEY_ALIAS")
+                keyPassword = System.getenv("SUBSY_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
-        release {
-            optimization {
-                enable = false
+        // Debug builds stay 64-bit ARM only: onnxruntime ships a ~25-40 MB native library per ABI.
+        // AGP rejects an ABI filter next to splits, so each applies only to its own kind of build.
+        debug {
+            if (!buildingRelease) {
+                ndk {
+                    abiFilters += "arm64-v8a"
+                }
             }
+        }
+        release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+            optimization {
+                enable = true
+                keepRules {
+                    files.add(project.file("proguard-rules.pro"))
+                }
+            }
+        }
+    }
+    // Release builds one APK per CPU (the release job uploads them all); debug stays on the single ABI above.
+    splits {
+        abi {
+            isEnable = buildingRelease
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = false
         }
     }
     compileOptions {
@@ -46,6 +78,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     // MigrationTestHelper reads the exported Room schemas from the test APK's assets.
     sourceSets

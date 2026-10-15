@@ -27,6 +27,7 @@ import com.wolfeleo2.subsy.data.repository.SettingsRepository
 import com.wolfeleo2.subsy.data.repository.SubscriptionRepository
 import com.wolfeleo2.subsy.data.repository.TransactionDetectorRepository
 import com.wolfeleo2.subsy.data.repository.TransactionRepository
+import com.wolfeleo2.subsy.data.update.UpdateChecker
 import com.wolfeleo2.subsy.detection.ModelRepository
 import com.wolfeleo2.subsy.worker.DailyWorker
 
@@ -43,6 +44,7 @@ class SubsyApplication :
     val settingsRepository by lazy { SettingsRepository(this) }
     val exchangeRateRepository by lazy { ExchangeRateRepository(filesDir.resolve("exchange_rates.json")) }
     val modelRepository by lazy { ModelRepository(this) }
+    val updateChecker by lazy { UpdateChecker(this) }
     val detectorRepository: TransactionDetectorRepository by lazy {
         DefaultTransactionDetectorRepository(database.detectedTransactionDao())
     }

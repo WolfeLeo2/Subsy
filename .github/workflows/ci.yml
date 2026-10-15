@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Lint, static analysis, unit tests, debug and androidTest builds
+        run: ./gradlew ktlintCheck detekt testDebugUnitTest assembleDebug assembleDebugAndroidTest
+
+  release:
+    # Only a pushed tag like v1.2.0 releases; everything else stops after the checks.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Decode the release keystore
+        run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      - name: Build the signed release APK
+        # v1.2.0 -> versionName 1.2.0; the run number only ever goes up, so it is the versionCode.
+        run: ./gradlew assembleRelease -PversionName="${GITHUB_REF_NAME#v}" -PversionCode="$GITHUB_RUN_NUMBER"
+        env:
+          SUBSY_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          SUBSY_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SUBSY_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SUBSY_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      - name: Publish the GitHub release
+        # One APK per CPU. The in-app updater picks its APK by the ABI in the file name, so keep it there.
+        run: |
+          for apk in app/build/outputs/apk/release/*.apk; do
+            abi=$(basename "$apk" | sed -E 's/^app-(.*)-release\.apk$/\1/')
+            cp "$apk" "Subsy-$GITHUB_REF_NAME-$abi.apk"
+          done
+          gh release create "$GITHUB_REF_NAME" Subsy-*.apk app/build/outputs/mapping/release/mapping.txt \
+            --generate-notes --title "$GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -236,6 +236,29 @@ class ExpenseCalculationsTest {
     }
 
     @Test
+    fun rentCountsUnderItsChosenCategoryAndOthersUnderSubscriptions() {
+        val month = YearMonth.of(2026, 10)
+        val day = LocalDate.of(2026, 10, 5).toEpochMillis()
+        val rent = PaymentRecord("r", "rent", 25000.0, "KES", day)
+        val netflix = PaymentRecord("n", "netflix", 1100.0, "KES", day)
+        val summary =
+            ExpenseCalculations.monthSummary(
+                emptyList(),
+                listOf(rent, netflix),
+                "KES",
+                null,
+                month,
+                paymentCategories =
+                    mapOf(
+                        "rent" to "HOUSING",
+                    ),
+            )
+        val byKey = summary.expensesByCategory.associate { it.key to it.total }
+        assertEquals(25000.0, byKey.getValue("HOUSING"), 0.0)
+        assertEquals(1100.0, byKey.getValue("SUBSCRIPTIONS"), 0.0)
+    }
+
+    @Test
     fun dailyAllowanceSplitsWhatIsLeftOverTheRemainingDays() {
         val october = YearMonth.of(2026, 10)
         // 13th to 31st inclusive is 19 days.

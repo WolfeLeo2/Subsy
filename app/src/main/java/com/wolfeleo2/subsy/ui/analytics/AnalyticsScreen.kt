@@ -63,6 +63,7 @@ import com.wolfeleo2.subsy.ui.components.CurrencyNoteLines
 import com.wolfeleo2.subsy.ui.components.EmptyState
 import com.wolfeleo2.subsy.ui.components.LoadingState
 import com.wolfeleo2.subsy.ui.components.MoneyText
+import com.wolfeleo2.subsy.ui.components.OneTimeHint
 import com.wolfeleo2.subsy.ui.components.SectionHeader
 import com.wolfeleo2.subsy.ui.components.ServiceIconView
 import com.wolfeleo2.subsy.ui.components.StatTone
@@ -288,14 +289,20 @@ private fun AnalyticsContent(
             }
             item(key = "months_chart") {
                 if (shownMonths.any { it.total > 0.0 }) {
-                    MonthlyBars(
-                        months = shownMonths,
-                        budgetFor = uiState::budgetFor,
-                        defaultBudget = uiState.defaultBudget,
-                        currency = uiState.currency,
-                        onEditMonthBudget = { monthBudgetFor = it.toString() },
+                    OneTimeHint(
+                        id = "spending_month_budget",
+                        text = stringResource(R.string.hint_spending_month_budget),
+                        enabled = uiState.defaultBudget != null,
                         modifier = Modifier.animateItem(),
-                    )
+                    ) {
+                        MonthlyBars(
+                            months = shownMonths,
+                            budgetFor = uiState::budgetFor,
+                            defaultBudget = uiState.defaultBudget,
+                            currency = uiState.currency,
+                            onEditMonthBudget = { monthBudgetFor = it.toString() },
+                        )
+                    }
                 } else {
                     Text(
                         text = stringResource(R.string.analytics_no_history),

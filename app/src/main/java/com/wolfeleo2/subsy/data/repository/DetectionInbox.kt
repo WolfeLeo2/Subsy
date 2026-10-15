@@ -67,6 +67,8 @@ data class TrackPrefill(
     val currency: String,
     /** When the bank took the charge; the subscription's next charge is one cycle after it. */
     val chargedAt: Long,
+    /** The payee as the message printed it, so the new subscription matches its next payments. */
+    val bankName: String?,
 )
 
 /**
@@ -150,6 +152,7 @@ class DetectionInbox(
             amount = detection.amount,
             currency = detection.currency,
             chargedAt = detection.detectedAt,
+            bankName = detection.merchantName.takeIf { it.isNotBlank() },
         )
     }
 
@@ -209,12 +212,20 @@ class DetectionInbox(
         subscription: Subscription,
         detection: DetectedTransaction,
     ) {
-        // The daily worker logs a due cycle on its billing date. If it already did for this charge, confirm that record
-        // with what the bank took instead of logging (and advancing) a second time.
+        // The daily worker logs a due cycle on its billing date. If it already did for the cycle this charge pays,
+        // confirm that record with what the bank took instead of logging (and advancing) a second time. A cycle runs
+        // from its due date to the next one, so rent paid a week late still lands on its own cycle; a few days of
+        // slack before the due date covers paying early.
+        val at = detection.detectedAt
         val autoLogged =
-            payments.getPaymentRecordsForSubscription(subscription.id).first().firstOrNull {
-                it.status == PaymentStatus.AUTO_LOGGED && abs(it.paymentDate - detection.detectedAt) <= RECONCILE_WINDOW_MS
-            }
+            payments
+                .getPaymentRecordsForSubscription(subscription.id)
+                .first()
+                .filter { record ->
+                    record.status == PaymentStatus.AUTO_LOGGED &&
+                        at >= record.paymentDate - EARLY_PAYMENT_MS &&
+                        at < subscription.billingCycle.calculateNextBillingDate(record.paymentDate)
+                }.minByOrNull { abs(it.paymentDate - at) }
         if (autoLogged != null) {
             payments.recordPayment(
                 autoLogged.copy(status = PaymentStatus.CONFIRMED, amount = detection.amount, currency = detection.currency),
@@ -254,7 +265,7 @@ class DetectionInbox(
     private fun DetectedTransaction.transactionType() = if (kind == DetectedKind.INCOME) TransactionType.INCOME else TransactionType.EXPENSE
 
     private companion object {
-        const val RECONCILE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000L
+        const val EARLY_PAYMENT_MS = 3 * 24 * 60 * 60 * 1000L
     }
 }
 
@@ -284,7 +295,10 @@ object SubscriptionMatcher {
                 .split(' ')
                 .first()
                 .takeIf { it.length >= MIN_WORD_LENGTH }
-        return (listOfNotNull(subscription.name, firstWord) + preset?.keywords.orEmpty()).map(::squash).filter { it.isNotEmpty() }
+        // The bank name ("ACME PROPERTIES") is how a subscription named "Rent" matches its paybill payments.
+        return (listOfNotNull(subscription.name, subscription.bankName, firstWord) + preset?.keywords.orEmpty())
+            .map(::squash)
+            .filter { it.isNotEmpty() }
     }
 }
 
@@ -305,7 +319,7 @@ object SubscriptionSuggester {
         history: List<DetectedTransaction>,
         transactions: List<Transaction>,
     ): SubscriptionSuggestion? {
-        val tracked = subscriptions.map { squash(it.name) }.toSet()
+        val tracked = subscriptions.flatMap { listOfNotNull(it.name, it.bankName) }.map(::squash).toSet()
         val haystack = squash(detection.merchantName.ifBlank { detection.rawMessage })
         val preset =
             PresetServiceCatalog.presets

@@ -265,6 +265,40 @@ class DetectionInboxTest {
         }
 
     @Test
+    fun aSubscriptionNamedRentMatchesItsPaybillThroughTheBankName() =
+        runTest {
+            subscriptions.insertSubscription(netflix.copy(id = "rent", name = "Rent", amount = 25000.0, bankName = "ACME PROPERTIES"))
+            detector.add(detection("r", "ACME PROPERTIES", 26000.0)) // the rent went up: still matched, logged as charged
+
+            val charge = inbox.pending(flowOf(AppMode.SUBSCRIPTIONS)).first().single()
+            assertEquals("rent", charge.subscription?.id)
+            assertNull(charge.suggestion) // tracked under its bank name, so never suggested
+        }
+
+    @Test
+    fun rentPaidAWeekLateConfirmsItsAutoLoggedCycle() =
+        runTest {
+            val rent = netflix.copy(id = "rent", name = "Rent", amount = 25000.0, bankName = "ACME PROPERTIES")
+            subscriptions.insertSubscription(rent)
+            payments.recordPayment(PaymentRecord("auto", "rent", 25000.0, "KES", billingDay, PaymentStatus.AUTO_LOGGED))
+            detector.add(detection("r", "ACME PROPERTIES", 25000.0, at = billingDay + 7 * 24 * 3_600_000L))
+
+            inbox.log(inbox.pending(flowOf(AppMode.SUBSCRIPTIONS)).first().single())
+
+            val records = payments.getAllPaymentRecords().first()
+            assertEquals(1, records.size) // not counted twice
+            assertEquals(PaymentStatus.CONFIRMED, records.single().status)
+            assertEquals(billingDay, subscriptions.getSubscriptionByIdDirect("rent")!!.nextBillingDate)
+        }
+
+    @Test
+    fun trackingFillsInTheBankName() =
+        runTest {
+            detector.add(detection("g", "IRONWORKS GYM", 2600.0))
+            assertEquals("IRONWORKS GYM", inbox.trackPrefill("g")!!.bankName)
+        }
+
+    @Test
     fun matchesSubscriptionsByNameIgnoringSpacesAndOnlyWhileLive() {
         val youtube = netflix.copy(id = "yt", name = "YouTube Premium")
         val card = detection("y", "GOOGLE *YouTubePremium", 299.0)

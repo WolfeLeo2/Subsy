@@ -13,7 +13,7 @@ com.wolfeleo2.subsy
 ├── SubsyApplication     manual DI: lazy repositories, one per process
 ├── MainActivity         mode chooser, then the one-time detection screen, then SubsyNavGraph
 ├── data
-│   ├── local            Room: entities, DAOs, SubsyDatabase (v5, exported schemas in app/schemas)
+│   ├── local            Room: entities, DAOs, SubsyDatabase (v6, exported schemas in app/schemas)
 │   ├── model            domain types (Subscription, Transaction, Money, SpendCategory, DetectedTransaction, ...)
 │   ├── repository       Subscription, PaymentRecord, Transaction, Category, Budget, Settings, ExchangeRate,
 │   │                    BillingLedger, TransactionDetector, DetectionInbox
@@ -33,6 +33,7 @@ Each of these came from a real bug or a decision. Breaking one brings the bug ba
 - **`BillingLedger` logs charges.** It writes the `PaymentRecord`, converts a paid trial to `ACTIVE` and advances the billing date as one operation. The detail screen, the daily worker and detection all go through it. There are exactly two deliberate exceptions, both in `DetectionInbox` and both to keep the billing date from advancing twice:
   - Confirming a cycle the daily worker already auto-logged upgrades that record in place.
   - Tracking a new subscription from a charge records that charge directly, because the add form already set the next charge one cycle later.
+- **Deleting never loses spending history.** `SubscriptionRepository.deleteSubscriptionById` deletes a subscription outright only when it has no payments. With payments, it archives it instead (`archived_at` set, status CANCELLED), because payment records cascade-delete with their subscription, and deleting a subscription paid on the 10th would make that month look within budget. `getAllSubscriptions()` leaves archived ones out (Home, matching, reminders, auto-logging); `getSubscriptionHistory()` includes them for screens that list or total past payments (Transactions, Spending).
 - **Room never loses data.** `exportSchema = true`, no destructive fallback. Every schema change needs a version bump, an `AutoMigration` entry and a `MigrationTest` case. Inserts use plain `@Insert`, because `REPLACE` on a parent table cascade-deletes its payment records.
 - **Money carries its currency.** Totals convert into the primary currency at read time (`inCurrency`, `Money.convertTo`) with keyless open.er-api.com rates, cached for 24 h. A stored amount is never rewritten. An amount with no rate is left out and flagged, never read as the primary currency.
 - **Two modes, one dataset.** `AppMode.SUBSCRIPTIONS` hides the transaction screens; `ALL_SPENDING` adds transactions, income, categories and budgets. Switching never deletes anything.
@@ -62,6 +63,8 @@ Read bank and mobile money messages (SMS and app notifications) on the phone and
 | Capture: SMS receiver, notification listener, pre-filter, `DetectionWorker`, guards, de-duplication, Room v5 | Done; a real M-Pesa airtime SMS was detected and logged on the S22 |
 | Card, notification, logging, matching, merchant memory, own-account rule, onboarding | Done; unit-tested |
 | Track it (suggest untracked subscriptions), category picker on the card | Done; unit-tested, not yet tried on a device |
+| Friends & family categories, notes on logged transactions ("Sent to John Kamau") | Done; unit-tested, not yet tried on a device |
+| Bills like rent (Counts under, Every 2 months, Name on bank messages, whole-cycle reconcile), archive instead of delete, Room v6 | Done; unit-tested, `MigrationTest` 5 to 6 not yet run on a device |
 
 ### 2.2 The whole feature on one page
 
@@ -87,7 +90,7 @@ flowchart TD
         IN --> CARD[Card on Home / Transactions]
         IN --> NOTIF[Quiet notification]
         CARD & NOTIF -- Log it --> LOG{Subscription<br/>match?}
-        LOG -- yes --> LEDGER[BillingLedger<br/>or confirm auto-logged]
+        LOG -- yes --> LEDGER[BillingLedger<br/>or confirm that cycle's auto-logged record]
         LOG -- no --> TX[Transaction<br/>with chosen category]
         CARD -- Track it --> ADD[Add subscription form<br/>prefilled] --> FIRST[First charge recorded]
         CARD & NOTIF -- Ignore --> DONE[marked processed]
@@ -148,7 +151,7 @@ stateDiagram-v2
 To publish a new export:
 1. `gh release create detector-vN eval/artifacts/detector/{spec.json,vocab.tsv,heads.onnx,encoder.int8.onnx}`.
 2. Update `DetectorRelease.TAG` and the sizes and hashes (`shasum -a 256`).
-3. Regenerate the test resources (step 6 under 2.15).
+3. Regenerate the test resources (step 6 under 2.16).
 
 ### 2.5 Reading one message (`detection/`)
 | File | Role | Python it mirrors |
@@ -238,8 +241,8 @@ The model reads, the app decides what to trust. A reading becomes a `DetectedCha
 
 **De-duplication** (`TransactionDetectorRepository.isDuplicate`): the same reference ever seen, or, without a reference, the same amount and currency within 10 minutes either side.
 
-### 2.9 Storage (Room v5)
-`detected_transactions`: `id`, `merchant_name`, `amount`, `currency`, `kind` (EXPENSE, INCOME, TRANSFER), `reference` (indexed), `category_key` (the model's guess), `sender` (SMS address or app package), `raw_message`, `source` (SMS or NOTIFICATION), `detected_at`, `is_processed`. Version 5 added the columns after `is_processed` through `AutoMigration(4, 5)`; `MigrationTest.migrate4To5...` covers it and passed on the S22.
+### 2.9 Storage (Room v5 and v6)
+`detected_transactions`: `id`, `merchant_name`, `amount`, `currency`, `kind` (EXPENSE, INCOME, TRANSFER), `reference` (indexed), `category_key` (the model's guess), `sender` (SMS address or app package), `raw_message`, `source` (SMS or NOTIFICATION), `detected_at`, `is_processed`. Version 5 added the columns after `is_processed` through `AutoMigration(4, 5)`; `MigrationTest.migrate4To5...` covers it and passed on the S22. Version 6 added `spend_category`, `bank_name` and `archived_at` to `subscriptions` (sections 1 and 2.12) through `AutoMigration(5, 6)`, covered by `MigrationTest.migrate5To6...` (not yet run on a device).
 
 A row is processed once the user logs it, tracks it or ignores it. Processed rows stay as history: they feed de-duplication and the monthly-repeat check.
 
@@ -269,12 +272,12 @@ flowchart TD
 
 The card (`ui/detection/SpottedCharges.kt`) sits in a slot under the Home hero and under the Transactions month summary, and in the Transactions empty state. The notification (`DetectionNotifier`, channel "Spotted charges", low importance) uses the same words, from `SpottedWording.kt`. Its buttons go to `DetectionActionReceiver`, which isn't exported. Handling a charge anywhere cancels its notification, and `DetectionInbox.log` checks `is_processed` first, so tapping the card and then the notification logs once.
 
-**Matching a tracked subscription** (`SubscriptionMatcher`): the subscription is live (ACTIVE or TRIAL) and its full name, the first word of its name (4+ letters), or the catalog keywords of the preset with its name appear in the merchant, ignoring case, spaces and punctuation. "YouTube Premium" matches "GOOGLE *YouTubePremium". Several matches: closest amount in the same currency wins.
+**Matching a tracked subscription** (`SubscriptionMatcher`): the subscription is live (ACTIVE or TRIAL) and its full name, its bank name (section 2.12), the first word of its name (4+ letters), or the catalog keywords of the preset with its name appear in the merchant, ignoring case, spaces and punctuation. "YouTube Premium" matches "GOOGLE *YouTubePremium". Several matches: closest amount in the same currency wins.
 
 **Suggesting an untracked subscription** (`SubscriptionSuggester`), only for expenses that match nothing tracked, from evidence rather than a guess:
 1. **Catalog:** the merchant contains a preset's name or keyword (4+ letters). The longest matching key wins, so "GOOGLE *YouTubePremium" suggests YouTube Premium, not Google One.
 2. **Monthly repeat:** the same merchant took an amount within 15% of this one 25 to 35 days earlier, in a stored detection or in the user's transactions.
-3. A service the user already has, under any status (paused or cancelled too), is never suggested.
+3. A service the user already has, under any status (paused or cancelled too) and by name or bank name, is never suggested. Archived (deleted) subscriptions don't count as had, so a deleted service can be suggested again.
 
 **Track it** opens the add form at `Screen.TrackSpottedCharge(detectionId)`:
 
@@ -286,7 +289,7 @@ sequenceDiagram
     participant DB as Room
     C->>F: Track it (detection id)
     F->>I: trackPrefill(id)
-    I-->>F: name, preset, amount and currency the bank took, charge date
+    I-->>F: name, preset, bank name, amount and currency the bank took, charge date
     F->>F: apply preset (category, cycle, logo, cancel URL)<br/>next charge = first cycle date after today, counted from the charge
     F->>DB: insert subscription (start = next charge)
     F->>I: recordFirstCharge(id, subscription)
@@ -302,12 +305,14 @@ flowchart TD
     L[Log it] --> P{already processed?}
     P -- yes --> X[nothing: second tap]
     P -- no --> S{matched subscription?}
-    S -- yes --> A{AUTO_LOGGED payment for it<br/>within 3 days?}
+    S -- yes --> A{AUTO_LOGGED payment for the cycle<br/>this charge pays?}
     A -- yes --> U[upgrade that record to CONFIRMED<br/>with the amount the bank took]
     A -- no --> LG[BillingLedger.logPaymentAndAdvance<br/>amount the bank took, charge date]
     S -- no --> C[Transaction: kind, amount, currency, date,<br/>merchant, source, category]
     U & LG & C --> DONE[detection processed]
 ```
+
+**Which auto-logged cycle a charge pays:** the AUTO_LOGGED record whose cycle contains the charge, from 3 days before its due date (paying early) up to the next due date (paying late), closest first. Rent due on the 1st and paid on the 8th confirms the 1st's record instead of logging a second payment and advancing again.
 
 **The category** of a logged transaction, first that applies:
 1. What the user picked on the card's category chip. The menu lists the built-in categories for that direction, the user's custom ones, and "New category" (the same dialog as the Categories screen).
@@ -330,14 +335,42 @@ The chip shows the result of 2 to 4 before the user touches it.
 
 `ChargeNote.of` picks the wording from the message's own words. The text comes from string resources through the `describe` function `SubsyApplication` gives `DetectionInbox`. The note is written once, at log time, and is editable like any note.
 
-### 2.12 Onboarding and Settings
-- **`DetectionIntroScreen`** shows once, after the mode chooser, and once to users who already had the app (`detection_intro_seen`). It covers:
-  - what detection reads: new SMS and bank app notifications, never old messages
-  - the ~98 MB Wi-Fi download
-  - that messages never leave the phone
-  - how to get past Android's "restricted settings" block for apps installed outside Play: App info, the top-corner menu, Allow restricted settings
+### 2.12 Bills like rent: recurring, fixed, but not "subscriptions"
+Rent, home internet, insurance and school fees recur on a date with a fixed amount, which is exactly what the subscription engine does: billing anchor, reminders 3, 1 and 0 days before, auto-logging, matching. Rather than a second "bills" system, four additions (2026-10-14, Room v6) make it fit them. They're still `Subscription`s in code.
 
-  "Turn on" enables detection, starts the download and asks for SMS access. Notification access can only be granted on Android's own settings page, so it's done from Settings.
+| Need | How |
+|---|---|
+| Rent should count as housing, not "Subscriptions" | `Subscription.spendCategory` ("Counts under" in the form, built-in expense categories). `ExpenseCalculations.monthSummary(paymentCategories = …)` and the Transactions rows use it; unset stays Subscriptions. |
+| Some bills come every other month | `BillingCycleType.BI_MONTHLY`, "Every 2 months": calendar months from the anchor, so it never drifts the way "every 60 days" does. |
+| A subscription named "Rent" must match "sent to ACME PROPERTIES for account HSE12" | `Subscription.bankName` ("Name on bank messages" in the form). The matcher checks it like the name; Track it fills it from the merchant. |
+| Rent paid late must not count twice | The reconcile window is the whole cycle (2.11), not 3 days. |
+
+```mermaid
+flowchart TD
+    Q{Fixed amount on a known date,<br/>and a reminder is useful?} -- yes --> SUB[Add it as a subscription<br/>set Counts under and Name on bank messages]
+    Q -- no, the amount varies --> TX[Log it as transactions<br/>Housing & bills: KPLC tokens, water]
+    SUB --> D[Detection logs each payment against it]
+    TX --> M[Merchant memory files the next one]
+```
+
+Moving house or a rent change is left to the user: edit the bank name and amount. The amount doesn't have to match for detection, since a matched payment is logged with what the bank took.
+
+### 2.13 Onboarding and Settings
+- **Onboarding** (`ui/onboarding/`) is one wizard, `OnboardingFlow`, with one step per screen and a wavy progress bar on the middle steps:
+  1. Welcome: four bundled service logos in morphing M3 Expressive shapes (still when animations are off)
+  2. What do you track
+  3. Currency, preselected from the locale
+  4. Detection demo: a synthetic M-Pesa message turns into the production Spotted card. "Turn it on" enables detection and starts the download; "Maybe later" skips steps 5 to 7
+  5. Privacy and text messages (`RECEIVE_SMS`), with the download status
+  6. Bank app notifications (Android's listener page, re-checked on resume)
+  7. Your name on bank messages (optional)
+  8. First action: add a subscription, log an expense, or later. It is passed to `SubsyNavGraph` as `startAction` and performed once. The add form already opens with the preset catalog showing.
+
+  `OnboardingViewModel` keeps the answers so Back restores them, and saves each one as its step is confirmed. `nextStep` and `previousStep` are pure and unit tested.
+- **One flag:** `onboarding_done` replaces "a mode exists" plus `detection_intro_seen`. Installs from before it count as done when both were set (`onboardingDone()` in `SettingsRepository`). An install with a mode but without the intro resumes at step 4.
+- **Denied or restricted grants:** when SMS is denied, or notification access is still off after returning from Android's page, the step shows a help card for "Allow restricted settings" with an Open App info button. After SMS is denied twice (no rationale left), `rememberSmsRequest` turns the button into Open App info; Settings' Text messages row uses the same helper.
+- **One-time hints** (`OneTimeHint`): rich tooltips for swipe on Home and Transactions and for per-month budgets on Spending. Each shows once, remembered in `hints_seen`.
+- **Welcome logos** are Simple Icons SVG paths (CC0) converted to vector drawables in `res/drawable/onboarding_logo_*.xml`, drawn white on the catalog's brand colour. They are third-party trademarks shown to illustrate the services Subsy tracks. A credit line is still to add in Settings.
 - **Settings, Charge detection:**
   - the opt-in switch, with the download status, or "Ready. N charges spotted so far"
   - Text messages access, with a tap to allow
@@ -345,13 +378,13 @@ The chip shows the result of 2 to 4 before the user touches it.
   - "Your name on bank messages"
   - Access rows re-check on every resume, since both are granted outside the screen.
 
-### 2.13 Privacy
+### 2.14 Privacy
 - **On-device only.** Messages are read and parsed on the phone, and nothing about them is sent anywhere. The only network use is the one-time model download.
 - **Little is stored.** Only messages that pass the pre-filter reach the worker, and only those that pass the guards are stored, together with their text. The database is excluded from backups.
 - **`eval/` is private.** `messages.txt` and `labels.jsonl` contain the developer's real SMS, with names and phone numbers. They and `eval/artifacts/` are in `.gitignore`. Never publish them, and never copy a real name, number or reference into code, docs, tests or synthetic templates.
 - **Test resources are synthetic.** `app/src/test/resources/detection/` is generated by `eval/export_app.py` from synthetic texts only, and is safe to commit.
 
-### 2.14 Testing
+### 2.15 Testing
 **JVM unit tests** (`./gradlew :app:testDebugUnitTest`):
 
 | Test | Covers |
@@ -376,7 +409,7 @@ adb logcat -d -s ChargeModelDeviceTest:I   # load time, ms per message, mismatch
 
 **Debug builds started from Android Studio's Run button** get Studio's agent in `code_cache/startup_agents/`. Android loads it on every process start of a debuggable app, including background starts for SMS and notifications, and on the S22 it crashed with SIGILL before Subsy's code ran. Keep the app open while testing such an install, or install with `./gradlew :app:installDebug` and clear that folder. Release builds never load it.
 
-### 2.15 Retraining or changing the model
+### 2.16 Retraining or changing the model
 Use any Python 3.12 virtualenv: `uv venv --python 3.12 && uv pip install "gliner2[local]" onnx onnxruntime onnxscript`. Run the scripts with `python -I`. Download the base model with plain `curl` from `huggingface.co/fastino/gliner2.5-small-v1/resolve/main/<file>`; the `hf` client stalled.
 
 ```sh
@@ -401,7 +434,7 @@ python -I eval/export_app.py eval/artifacts/detector app/src/test/resources <syn
 
 To support a new country, add real-format templates to `make_train.py` and a few labelled messages to `labels.jsonl`, then retrain. That's data, not code. Its services can be added to `PresetServiceCatalog` the same way, which makes them matchable and suggestible.
 
-### 2.16 Traps found along the way
+### 2.17 Traps found along the way
 - **The gliner2 README's training API is out of date.** Use `TrainingDataset.validate(raise_on_error=...)` and `ExtractorTrainer.train(train_data=..., eval_data=...)`.
 - **Training labels must align with tokens.** An entity value inside a hyphen run fails alignment; check with `processor.find_unalignable_entities`.
 - **Heads export:**
@@ -412,15 +445,17 @@ To support a new country, add real-format templates to `make_train.py` and a few
 - **Quantize only the encoder.** Quantizing the heads too dropped agreement to 266/342.
 - **Android regex is not Java regex.** ICU rejects `UNICODE_CHARACTER_CLASS`. JVM tests passed while the phone crashed; only the device test caught it. Spell character classes out.
 - **Unicode escapes can turn into the characters themselves** when code is generated or pasted, leaving invisible zero-width characters in source. Check new files for non-ASCII characters.
-- **The Studio startup agent** crashes background starts of debug installs (section 2.14).
+- **The Studio startup agent** crashes background starts of debug installs (section 2.15).
 
-### 2.17 Decisions and known gaps
-- **APK size: 64-bit ARM only** (decided 2026-10-14). onnxruntime-android ships a native library per ABI; all four took the debug APK from 109 MB to 248 MB. `ndk.abiFilters = arm64-v8a` brings it to 142 MB (+33 MB) and drops 32-bit phones and x86 emulators. If 32-bit Android Go phones matter later, ship per-ABI APK splits rather than a fat APK; a reduced-operator ONNX Runtime build is the other lever.
-- **minSdk stays 33** for now. Going to 31 needs `POST_NOTIFICATIONS` version checks in `MainActivity` and `ReminderNotifier`.
+### 2.18 Decisions and known gaps
+- **APK size and CPUs** (changed 2026-10-15). onnxruntime-android ships a native library per ABI, so a fat APK is huge (248 MB debug). Release builds are split into one APK per CPU (`arm64-v8a`, `armeabi-v7a`, `x86_64`; about 42, 32 and 49 MB with R8 on) and the release job uploads all three. Debug builds stay `arm64-v8a` only, because AGP refuses an ABI filter next to splits, so each is applied only to its own kind of build (`buildingRelease` in `app/build.gradle.kts`). R8 is on for release, with `proguard-rules.pro` keeping `ai.onnxruntime.**` (its native code finds Java classes by name). Not yet run on a device.
+- **In-app updates** (`data/update/UpdateChecker`, `ui/update/`). `UpdateViewModel` (activity scoped) checks the repo's latest GitHub release once per launch, compares it to `BuildConfig.VERSION_NAME`, and opens `UpdateSheet` if newer. Settings, About, re-checks on tap. The APK is chosen by matching `Build.SUPPORTED_ABIS` against the ABI in the asset name, so release asset names must keep it (`Subsy-v1.2.0-arm64-v8a.apk`). The download is checked against GitHub's SHA-256 digest, then handed to Android's installer through a `FileProvider`; Android only accepts it if it's signed with the same key. Needs `REQUEST_INSTALL_PACKAGES`. Release notes show as plain text.
+- **minSdk is 31** (changed 2026-10-15). Notifications go through `canPostNotifications` (the `POST_NOTIFICATIONS` runtime permission only exists from Android 13; below it they are allowed unless switched off), and `Dates.kt` avoids `LocalDate.ofInstant` (API 34).
+- **Skipped updates:** "Skip this version" in the update sheet stores the version (`skipped_update`), so it stops opening at startup; Settings still offers it.
 - **Model hosting:** a GitHub release asset per export, with SHA-256 checksums in the app. Apache 2.0 attribution for GLiNER2.5 and DeBERTa-v3.
 - **The catalog leans American.** It has no Showmax, DStv, GOtv, Safaricom Home Fibre or Zuku, so Kenyan services are suggested only through the monthly-repeat check until they're added.
-- **SMS access denied twice:** Android stops showing the prompt, and "Tap to allow" then does nothing. It should open App info instead.
 - **The monthly-repeat check can mistake routine spending for a subscription.** A similar grocery or fuel spend at the same merchant 25 to 35 days apart triggers "Track it?". Kept on purpose (2026-10-14): Log it and Ignore still work, and tightening it (three charges, or no suggestions for categories like Groceries) waits for tester feedback.
 - **A bare `$` is USD.** Users in other dollar countries would need the primary currency to decide.
 - **Message length:** beyond 128 words is cut, as gliner2 does. Every bank SMS seen so far is under 70 words.
+- **"Counts under" offers built-in categories only**, not custom ones (the form's view model has no category repository yet).
 - **The Track it form** has no automated test of its next-charge date yet. `nextBillingAfter` itself is tested.

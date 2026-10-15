@@ -56,6 +56,10 @@ data class AddEditFormState(
     val catalogPrice: Double? = null,
     val catalogCurrency: String = "USD",
     val notes: String = "",
+    /** The payee as bank messages print it; detection matches payments to it ("ACME PROPERTIES" for "Rent"). */
+    val bankName: String = "",
+    /** Where payments count in All spending (a category key); null is Subscriptions. */
+    val spendCategory: String? = null,
     val isEditing: Boolean = false,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
@@ -158,6 +162,8 @@ class AddEditViewModel(
                 cancellationUrl = existing.cancellationUrl.orEmpty(),
                 colorHex = existing.colorHex,
                 notes = existing.notes.orEmpty(),
+                bankName = existing.bankName.orEmpty(),
+                spendCategory = existing.spendCategory,
                 isEditing = true,
             )
         pristine = _formState.value.content()
@@ -172,6 +178,7 @@ class AddEditViewModel(
                 name = prefill.name,
                 amount = formatAmountForInput(prefill.amount),
                 currency = prefill.currency,
+                bankName = prefill.bankName.orEmpty(),
                 firstChargeDate = it.cycleOrNull()?.let(::nextCharge) ?: it.firstChargeDate,
             )
         }
@@ -247,6 +254,10 @@ class AddEditViewModel(
 
     fun onNotesChange(notes: String) = _formState.update { it.copy(notes = notes) }
 
+    fun onBankNameChange(name: String) = _formState.update { it.copy(bankName = name) }
+
+    fun onSpendCategoryChange(key: String?) = _formState.update { it.copy(spendCategory = key) }
+
     fun save() {
         val state = _formState.value
         if (state.isSaving || state.isLoading || state.isNotFound) return
@@ -301,6 +312,8 @@ class AddEditViewModel(
                     cancellationUrl = state.cancellationUrl.trim().ifEmpty { null },
                     colorHex = state.colorHex,
                     notes = state.notes.trim().ifEmpty { null },
+                    bankName = state.bankName.trim().ifEmpty { null },
+                    spendCategory = state.spendCategory,
                 )
             // Re-anchor only when the schedule changed, so month-end anchors survive unrelated edits.
             val subscription = if (scheduleChanged) edited.copy(startDate = chargeMillis, nextBillingDate = chargeMillis) else edited

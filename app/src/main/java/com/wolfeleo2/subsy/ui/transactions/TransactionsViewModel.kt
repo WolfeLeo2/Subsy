@@ -20,6 +20,7 @@ import com.wolfeleo2.subsy.data.repository.SubscriptionRepository
 import com.wolfeleo2.subsy.data.repository.TransactionRepository
 import com.wolfeleo2.subsy.data.util.ExpenseCalculations
 import com.wolfeleo2.subsy.data.util.MonthSummary
+import com.wolfeleo2.subsy.data.util.paymentCategories
 import com.wolfeleo2.subsy.data.util.toLocalDate
 import com.wolfeleo2.subsy.data.util.today
 import kotlinx.coroutines.Job
@@ -98,7 +99,10 @@ class TransactionsViewModel(
             val inMonth = { date: LocalDate -> YearMonth.from(date) == shown }
             val rows =
                 visible.map { it.toRow(d.customs) }.filter { inMonth(it.date) } +
-                    d.payments.mapNotNull { p -> d.subscriptions[p.subscriptionId]?.let { p.toRow(it) } }.filter { inMonth(it.date) }
+                    d.payments
+                        .mapNotNull { p ->
+                            d.subscriptions[p.subscriptionId]?.let { p.toRow(it, d.customs) }
+                        }.filter { inMonth(it.date) }
             val filtered =
                 rows.filter {
                     when (selectedFilter) {
@@ -111,7 +115,15 @@ class TransactionsViewModel(
                 month = shown,
                 currency = currency,
                 budget = plan.forMonth(shown)?.convertTo(currency, rates),
-                summary = ExpenseCalculations.monthSummary(visible, d.payments, currency, rates, shown),
+                summary =
+                    ExpenseCalculations.monthSummary(
+                        visible,
+                        d.payments,
+                        currency,
+                        rates,
+                        shown,
+                        paymentCategories = d.subscriptions.values.paymentCategories(),
+                    ),
                 days =
                     filtered
                         .groupBy { it.date }
@@ -177,7 +189,8 @@ class TransactionsViewModel(
             TransactionsViewModel(
                 transactionRepository,
                 paymentRecordRepository.getAllPaymentRecords(),
-                subscriptionRepository.getAllSubscriptions(),
+                // Archived subscriptions too: their payments stay in the list and the month's totals.
+                subscriptionRepository.getSubscriptionHistory(),
                 categoryRepository.getCustom(),
                 primaryCurrency,
                 exchangeRates,
@@ -194,13 +207,17 @@ class TransactionsViewModel(
 private fun Transaction.toRow(customs: Map<String, CustomCategory>) =
     TransactionRow(id, type, amount, currency, date.toLocalDate(), resolveCategory(categoryKey, type, customs), transaction = this)
 
-private fun PaymentRecord.toRow(subscription: Subscription) =
-    TransactionRow(
-        id = "payment:$id",
-        type = TransactionType.EXPENSE,
-        amount = amount,
-        currency = currency,
-        date = paymentDate.toLocalDate(),
-        category = CategoryRef.Builtin(SpendCategory.SUBSCRIPTIONS),
-        subscription = subscription,
-    )
+private fun PaymentRecord.toRow(
+    subscription: Subscription,
+    customs: Map<String, CustomCategory>,
+) = TransactionRow(
+    id = "payment:$id",
+    type = TransactionType.EXPENSE,
+    amount = amount,
+    currency = currency,
+    date = paymentDate.toLocalDate(),
+    category =
+        subscription.spendCategory?.let { resolveCategory(it, TransactionType.EXPENSE, customs) }
+            ?: CategoryRef.Builtin(SpendCategory.SUBSCRIPTIONS),
+    subscription = subscription,
+)

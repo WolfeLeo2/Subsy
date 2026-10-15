@@ -59,6 +59,8 @@ object ExpenseCalculations {
         rates: ExchangeRates?,
         month: YearMonth,
         spread: Map<String, Int> = emptyMap(),
+        /** Subscription id to the category its payments count under; anything missing counts under Subscriptions. */
+        paymentCategories: Map<String, String> = emptyMap(),
     ): MonthSummary {
         var income = 0.0
         var unconverted = 0
@@ -81,7 +83,8 @@ object ExpenseCalculations {
         for (p in payments) {
             val share = p.shareIn(month, spread[p.subscriptionId] ?: 1) ?: continue
             val amount = convert(share, p.currency)
-            if (amount == null) unconverted++ else byCategory.merge(SpendCategory.SUBSCRIPTIONS.name, amount, Double::plus)
+            val key = paymentCategories[p.subscriptionId] ?: SpendCategory.SUBSCRIPTIONS.name
+            if (amount == null) unconverted++ else byCategory.merge(key, amount, Double::plus)
         }
         return MonthSummary(
             month = month,
@@ -189,6 +192,12 @@ fun PaymentRecord.shareIn(
     val offset = paid.until(month, ChronoUnit.MONTHS)
     return if (offset in 0 until months) amount / months else null
 }
+
+/** Subscription id to its chosen spending category, for [ExpenseCalculations.monthSummary]; unset ones are left out. */
+fun Collection<Subscription>.paymentCategories(): Map<String, String> =
+    mapNotNull { sub ->
+        sub.spendCategory?.let { sub.id to it }
+    }.toMap()
 
 /** Months one charge covers, for spreading it: 3 for quarterly, 12 for yearly, 1 for monthly or shorter. */
 fun BillingCycle.monthsCovered(): Int =

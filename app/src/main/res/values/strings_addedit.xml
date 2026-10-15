@@ -25,6 +25,11 @@
     <string name="addedit_change_date">Change date</string>
     <string name="addedit_date_confirm">OK</string>
     <string name="addedit_section_category">Category</string>
+    <string name="addedit_section_payments">Payments</string>
+    <string name="addedit_bank_name">Name on bank messages</string>
+    <string name="addedit_bank_name_supporting">As M-Pesa or your bank prints it, for example ACME PROPERTIES. Spotted payments to it are matched here.</string>
+    <string name="addedit_counts_under">Counts under</string>
+    <string name="addedit_counts_under_supporting">Where its payments count in All spending, for example Housing &amp; bills for rent</string>
     <string name="addedit_section_link_notes">Link and notes</string>
     <string name="addedit_cancellation_page">Website or cancellation page</string>
     <string name="addedit_cancellation_placeholder">example.com/account</string>

@@ -21,6 +21,7 @@ import com.wolfeleo2.subsy.data.repository.inCurrency
 import com.wolfeleo2.subsy.data.util.CategorySpend
 import com.wolfeleo2.subsy.data.util.ExpenseCalculations
 import com.wolfeleo2.subsy.data.util.MonthSpend
+import com.wolfeleo2.subsy.data.util.paymentCategories
 import com.wolfeleo2.subsy.data.util.spreadMap
 import com.wolfeleo2.subsy.data.util.toLocalDate
 import com.wolfeleo2.subsy.data.util.today
@@ -117,8 +118,11 @@ class AnalyticsViewModel(
     private val saveMonthBudget: suspend (YearMonth, Money?) -> Unit = { _, _ -> },
 ) : ViewModel() {
     // Quarterly and yearly charges spread over the months they cover, when the user wants budgets judged that way.
+    // Past payments include archived subscriptions' (deleted, but their money was spent), so both maps use the history.
     private val spread =
-        combine(subscriptionRepository.getAllSubscriptions(), spreadLongCharges) { subs, on -> if (on) spreadMap(subs) else emptyMap() }
+        combine(subscriptionRepository.getSubscriptionHistory(), spreadLongCharges) { subs, on -> if (on) spreadMap(subs) else emptyMap() }
+    private val paymentShape =
+        combine(spread, subscriptionRepository.getSubscriptionHistory()) { spreadBy, subs -> spreadBy to subs.paymentCategories() }
     private val planAndSpread = combine(budgetPlan, spread) { plan, map -> plan to map }
 
     private val spendingInputs =
@@ -179,10 +183,11 @@ class AnalyticsViewModel(
         }
 
     val uiState: StateFlow<AnalyticsUiState> =
-        combine(subscriptionState, spendingInputs, paymentRecords, exchangeRates, spread) { state, inputs, records, rates, spreadBy ->
+        combine(subscriptionState, spendingInputs, paymentRecords, exchangeRates, paymentShape) { state, inputs, records, rates, shape ->
+            val (spreadBy, categories) = shape
             if (!inputs.allSpending) return@combine state
             state.copy(
-                spending = spendingAnalytics(inputs, records, state.currency, rates, spreadBy),
+                spending = spendingAnalytics(inputs, records, state.currency, rates, spreadBy, categories),
                 hasAnySubscriptions = state.hasAnySubscriptions || inputs.transactions.isNotEmpty() || records.isNotEmpty(),
             )
         }.stateIn(
@@ -223,11 +228,20 @@ class AnalyticsViewModel(
         currency: String,
         rates: ExchangeRates?,
         spreadBy: Map<String, Int>,
+        paymentCategories: Map<String, String>,
     ): SpendingAnalytics {
         val current = YearMonth.from(today())
         val summaries =
             (HISTORY_MONTHS - 1 downTo 0).map { back ->
-                ExpenseCalculations.monthSummary(inputs.transactions, records, currency, rates, current.minusMonths(back), spreadBy)
+                ExpenseCalculations.monthSummary(
+                    inputs.transactions,
+                    records,
+                    currency,
+                    rates,
+                    current.minusMonths(back),
+                    spreadBy,
+                    paymentCategories,
+                )
             }
         val yearSummaries =
             (1..12).map { monthNum ->
@@ -238,6 +252,7 @@ class AnalyticsViewModel(
                     rates,
                     YearMonth.of(current.year, monthNum),
                     spreadBy,
+                    paymentCategories,
                 )
             }
         val now = summaries.last()

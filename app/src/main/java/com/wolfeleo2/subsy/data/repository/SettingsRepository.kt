@@ -34,8 +34,12 @@ data class UserSettings(
     val detectionEnabled: Boolean = false,
     /** The user's name as banks print it; money to or from it is a transfer between their own accounts. */
     val accountHolderName: String = "",
-    /** The one-time detection screen after the mode chooser was answered (on or not now). */
+    /** The old one-time detection screen; only read to tell existing users where onboarding should resume. */
     val detectionIntroSeen: Boolean = false,
+    /** The first-run flow was finished or skipped to the end. */
+    val onboardingDone: Boolean = false,
+    /** Ids of the one-time hints already shown. */
+    val hintsSeen: Set<String> = emptySet(),
 ) {
     val budgetPlan: BudgetPlan get() = BudgetPlan(monthlyBudget, budgetOverrides)
 }
@@ -65,6 +69,13 @@ class SettingsRepository(
                 detectionEnabled = prefs[DETECTION_ENABLED] ?: false,
                 accountHolderName = prefs[ACCOUNT_HOLDER_NAME] ?: "",
                 detectionIntroSeen = prefs[DETECTION_INTRO_SEEN] ?: false,
+                onboardingDone =
+                    onboardingDone(
+                        prefs[ONBOARDING_DONE],
+                        AppMode.fromString(prefs[APP_MODE]),
+                        prefs[DETECTION_INTRO_SEEN] ?: false,
+                    ),
+                hintsSeen = prefs[HINTS_SEEN].orEmpty(),
             )
         }
 
@@ -107,8 +118,12 @@ class SettingsRepository(
         store.edit { it[ACCOUNT_HOLDER_NAME] = name.trim() }
     }
 
-    suspend fun setDetectionIntroSeen() {
-        store.edit { it[DETECTION_INTRO_SEEN] = true }
+    suspend fun setOnboardingDone() {
+        store.edit { it[ONBOARDING_DONE] = true }
+    }
+
+    suspend fun markHintSeen(id: String) {
+        store.edit { it[HINTS_SEEN] = it[HINTS_SEEN].orEmpty() + id }
     }
 
     suspend fun setMonthlyBudget(budget: Money?) {
@@ -141,6 +156,13 @@ class SettingsRepository(
     /** Keys of reminders already shown, so each alert fires once. */
     suspend fun remindersSent(): Set<String> = store.data.first()[REMINDERS_SENT] ?: emptySet()
 
+    /** The update version the user chose not to be reminded about; the sheet stays closed at startup for it. */
+    suspend fun skippedUpdate(): String? = store.data.first()[SKIPPED_UPDATE]
+
+    suspend fun skipUpdate(version: String) {
+        store.edit { it[SKIPPED_UPDATE] = version }
+    }
+
     suspend fun setRemindersSent(keys: Set<String>) {
         store.edit { it[REMINDERS_SENT] = keys }
     }
@@ -151,6 +173,9 @@ class SettingsRepository(
         val DETECTION_ENABLED = booleanPreferencesKey("detection_enabled")
         val ACCOUNT_HOLDER_NAME = stringPreferencesKey("account_holder_name")
         val DETECTION_INTRO_SEEN = booleanPreferencesKey("detection_intro_seen")
+        val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
+        val SKIPPED_UPDATE = stringPreferencesKey("skipped_update")
+        val HINTS_SEEN = stringSetPreferencesKey("hints_seen")
         val REMINDERS_SENT = stringSetPreferencesKey("reminders_sent")
         val PRIMARY_CURRENCY = stringPreferencesKey("primary_currency")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
@@ -160,6 +185,13 @@ class SettingsRepository(
         val MONTHLY_BUDGET_CURRENCY = stringPreferencesKey("monthly_budget_currency")
     }
 }
+
+/** Installs from before the flag existed are done once they had picked a mode and answered the detection screen. */
+internal fun onboardingDone(
+    stored: Boolean?,
+    appMode: AppMode?,
+    detectionIntroSeen: Boolean,
+): Boolean = stored ?: (appMode != null && detectionIntroSeen)
 
 /** One stored override, "2026-12|35000.0|KES"; null if it can't be read. */
 private fun parseOverride(entry: String): Pair<YearMonth, Money>? {

@@ -1,21 +1,20 @@
 package com.wolfeleo2.subsy.worker
 
-import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.wolfeleo2.subsy.MainActivity
 import com.wolfeleo2.subsy.R
 import com.wolfeleo2.subsy.data.repository.SpottedCharge
 import com.wolfeleo2.subsy.detection.DetectionActionReceiver
 import com.wolfeleo2.subsy.detection.headline
 import com.wolfeleo2.subsy.detection.question
+import com.wolfeleo2.subsy.ui.util.canPostNotifications
 
 /** A quiet notification per spotted charge, with Log it and Ignore handled by [DetectionActionReceiver]. */
 class DetectionNotifier(
@@ -23,6 +22,8 @@ class DetectionNotifier(
 ) {
     private val manager = NotificationManagerCompat.from(context)
 
+    // Guarded by canNotify(); lint can't see through it now that the permission only exists from Android 13.
+    @SuppressLint("MissingPermission")
     fun show(charge: SpottedCharge) {
         if (!canNotify()) return
         createChannel()
@@ -69,9 +70,7 @@ class DetectionNotifier(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
-    private fun canNotify(): Boolean =
-        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED &&
-            manager.areNotificationsEnabled()
+    private fun canNotify(): Boolean = canPostNotifications(context)
 
     private fun createChannel() {
         val channel =

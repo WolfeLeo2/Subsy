@@ -1,18 +1,17 @@
 package com.wolfeleo2.subsy.worker
 
-import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.wolfeleo2.subsy.MainActivity
 import com.wolfeleo2.subsy.R
+import com.wolfeleo2.subsy.ui.util.canPostNotifications
 
 class ReminderNotifier(
     private val context: Context,
@@ -20,10 +19,10 @@ class ReminderNotifier(
     private val manager = NotificationManagerCompat.from(context)
 
     val canNotify: Boolean
-        get() =
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED &&
-                manager.areNotificationsEnabled()
+        get() = canPostNotifications(context)
 
+    // Callers check canNotify first; lint can't see through it now that the permission only exists from Android 13.
+    @SuppressLint("MissingPermission")
     fun show(reminder: Reminder) {
         createChannel()
         val sub = reminder.subscription

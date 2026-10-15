@@ -58,6 +58,7 @@ import com.wolfeleo2.subsy.ui.detection.SpottedCharges
 import com.wolfeleo2.subsy.ui.detection.SpottedChargesViewModel
 import com.wolfeleo2.subsy.ui.home.HomeScreen
 import com.wolfeleo2.subsy.ui.home.HomeViewModel
+import com.wolfeleo2.subsy.ui.onboarding.FirstAction
 import com.wolfeleo2.subsy.ui.settings.SettingsScreen
 import com.wolfeleo2.subsy.ui.settings.SettingsViewModel
 import com.wolfeleo2.subsy.ui.theme.Spacing
@@ -67,6 +68,9 @@ import com.wolfeleo2.subsy.ui.transactions.TransactionSheet
 import com.wolfeleo2.subsy.ui.transactions.TransactionSheetViewModel
 import com.wolfeleo2.subsy.ui.transactions.TransactionsScreen
 import com.wolfeleo2.subsy.ui.transactions.TransactionsViewModel
+import com.wolfeleo2.subsy.ui.update.UpdateSheet
+import com.wolfeleo2.subsy.ui.update.UpdateUiState
+import com.wolfeleo2.subsy.ui.update.UpdateViewModel
 import com.wolfeleo2.subsy.worker.DetectionNotifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -134,6 +138,7 @@ private val popExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> Exi
 @Composable
 fun SubsyNavGraph(
     modifier: Modifier = Modifier,
+    startAction: FirstAction = FirstAction.NONE,
     navController: NavHostController = rememberNavController(),
 ) {
     val app = LocalContext.current.applicationContext as SubsyApplication
@@ -143,6 +148,9 @@ fun SubsyNavGraph(
     val tabs = if (allSpending) RootTab.entries else listOf(RootTab.HOME, RootTab.ANALYTICS)
     // The open transaction sheet: null when closed. Each opening gets its own ViewModel through [SheetTarget.session].
     var sheet by remember { mutableStateOf<SheetTarget?>(null) }
+    // Activity-scoped, so it checks once per launch and a download outlives Settings.
+    val updates: UpdateViewModel = viewModel(factory = UpdateViewModel.Factory(app.updateChecker, app.settingsRepository))
+    val updateState by updates.state.collectAsStateWithLifecycle()
 
     val selectTab: (RootTab) -> Unit = { tab ->
         val route: Screen =
@@ -178,6 +186,14 @@ fun SubsyNavGraph(
         if (mode != null && !allSpending && currentTab == RootTab.TRANSACTIONS) selectTab(RootTab.HOME)
     }
     val openSheet = { id: String? -> sheet = SheetTarget(id) }
+    // The add form opens with the preset catalog showing, so both first actions land on their sheet.
+    LaunchedEffect(Unit) {
+        when (startAction) {
+            FirstAction.ADD_SUBSCRIPTION -> openAdd()
+            FirstAction.LOG_EXPENSE -> openSheet(null)
+            FirstAction.NONE -> Unit
+        }
+    }
     // Keeps the last tab highlighted while the toolbar animates out to a non-root screen.
     var shownTab by remember { mutableStateOf(RootTab.HOME) }
     if (currentTab != null) shownTab = currentTab
@@ -191,7 +207,9 @@ fun SubsyNavGraph(
                 LocalSharedTransitionScope provides this@SharedTransitionLayout,
                 LocalRootToolbarScroll provides toolbarScroll,
             ) {
-                SubsyNavHost(navController, app, primaryCurrency, openAdd, openDetail, openSheet)
+                SubsyNavHost(navController, app, primaryCurrency, openAdd, openDetail, openSheet, updateState) {
+                    if (updateState.available != null) updates.openSheet() else updates.check()
+                }
             }
             AnimatedVisibility(
                 visible = currentTab != null,
@@ -215,6 +233,7 @@ fun SubsyNavGraph(
         }
     }
 
+    if (updateState.sheetOpen) UpdateSheet(updateState, updates)
     sheet?.let { target ->
         TransactionSheet(
             viewModel =
@@ -247,6 +266,8 @@ private fun SubsyNavHost(
     openAdd: () -> Unit,
     openDetail: (origin: String) -> (Subscription) -> Unit,
     openSheet: (transactionId: String?) -> Unit,
+    updateState: UpdateUiState,
+    onUpdateClick: () -> Unit,
 ) {
     // Home and Transactions each show the charges detection spotted, with one view model per screen.
     val spotted: @Composable (Modifier) -> Unit = { modifier ->
@@ -409,6 +430,8 @@ private fun SubsyNavHost(
                     ),
                 onNavigateBack = { navController.popBackStack() },
                 onOpenCategories = { navController.navigate(Screen.Categories) },
+                updateState = updateState,
+                onUpdateClick = onUpdateClick,
             )
         }
 

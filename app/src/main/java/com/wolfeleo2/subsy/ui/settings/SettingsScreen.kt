@@ -1,14 +1,6 @@
 package com.wolfeleo2.subsy.ui.settings
 
-import android.Manifest
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.provider.Settings
 import android.text.format.Formatter
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -47,17 +39,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wolfeleo2.subsy.BuildConfig
 import com.wolfeleo2.subsy.R
 import com.wolfeleo2.subsy.data.model.AppMode
 import com.wolfeleo2.subsy.data.model.ThemeMode
 import com.wolfeleo2.subsy.data.model.convertTo
 import com.wolfeleo2.subsy.data.repository.ExchangeRates
 import com.wolfeleo2.subsy.data.repository.UserSettings
-import com.wolfeleo2.subsy.detection.BankNotificationListener
 import com.wolfeleo2.subsy.detection.DetectorRelease
 import com.wolfeleo2.subsy.detection.DetectorState
 import com.wolfeleo2.subsy.ui.components.BudgetDialog
@@ -68,11 +58,16 @@ import com.wolfeleo2.subsy.ui.onboarding.label
 import com.wolfeleo2.subsy.ui.theme.AppTheme
 import com.wolfeleo2.subsy.ui.theme.Spacing
 import com.wolfeleo2.subsy.ui.theme.tabular
+import com.wolfeleo2.subsy.ui.update.CheckOutcome
+import com.wolfeleo2.subsy.ui.update.UpdateUiState
 import com.wolfeleo2.subsy.ui.util.FormattingUtils
 import com.wolfeleo2.subsy.ui.util.currencyChoices
+import com.wolfeleo2.subsy.ui.util.currencyName
+import com.wolfeleo2.subsy.ui.util.hasNotificationAccess
+import com.wolfeleo2.subsy.ui.util.hasSmsAccess
+import com.wolfeleo2.subsy.ui.util.openNotificationAccess
 import com.wolfeleo2.subsy.ui.util.openUrl
-import java.util.Currency
-import java.util.Locale
+import com.wolfeleo2.subsy.ui.util.rememberSmsRequest
 
 private const val EXCHANGE_RATE_SOURCE_URL = "https://www.exchangerate-api.com"
 
@@ -81,6 +76,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateBack: () -> Unit,
     onOpenCategories: () -> Unit,
+    updateState: UpdateUiState,
+    onUpdateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -109,6 +106,8 @@ fun SettingsScreen(
         onSetAccountHolderName = viewModel::setAccountHolderName,
         onNavigateBack = onNavigateBack,
         onOpenCategories = onOpenCategories,
+        updateState = updateState,
+        onUpdateClick = onUpdateClick,
         modifier = modifier,
     )
 }
@@ -130,6 +129,8 @@ fun SettingsContent(
     onSetAccountHolderName: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onOpenCategories: () -> Unit,
+    updateState: UpdateUiState,
+    onUpdateClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -141,7 +142,7 @@ fun SettingsContent(
         notificationsAllowed = hasNotificationAccess(context)
         onPauseOrDispose {}
     }
-    val smsPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { smsAllowed = it }
+    val smsRequest = rememberSmsRequest { smsAllowed = it }
     var showCurrencyPicker by rememberSaveable { mutableStateOf(false) }
     var showModePicker by rememberSaveable { mutableStateOf(false) }
     var showBudgetEditor by rememberSaveable { mutableStateOf(false) }
@@ -278,7 +279,7 @@ fun SettingsContent(
             if (settings.detectionEnabled) {
                 item {
                     SegmentedListItem(
-                        onClick = { if (!smsAllowed) smsPermission.launch(Manifest.permission.RECEIVE_SMS) },
+                        onClick = { if (!smsAllowed) smsRequest.launch() },
                         shapes = ListItemDefaults.segmentedShapes(index = 1, count = 4),
                         supportingContent = { Text(stringResource(R.string.detection_sms_supporting)) },
                         trailingContent = { Text(accessLabel(smsAllowed)) },
@@ -336,6 +337,16 @@ fun SettingsContent(
                     trailingContent = { Switch(checked = settings.useDynamicColor, onCheckedChange = null) },
                 ) {
                     Text(stringResource(R.string.settings_dynamic_color))
+                }
+            }
+            item { SectionHeader(stringResource(R.string.settings_section_about)) }
+            item {
+                SegmentedListItem(
+                    onClick = onUpdateClick,
+                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+                    supportingContent = { Text(updateSummary(updateState)) },
+                ) {
+                    Text(stringResource(R.string.settings_updates))
                 }
             }
         }
@@ -514,6 +525,16 @@ private fun ThemePickerDialog(
     )
 }
 
+@Composable
+private fun updateSummary(state: UpdateUiState): String =
+    when {
+        state.checking -> stringResource(R.string.settings_updates_checking)
+        state.available != null -> stringResource(R.string.settings_updates_available, state.available.version)
+        state.outcome == CheckOutcome.UP_TO_DATE -> stringResource(R.string.settings_updates_current, BuildConfig.VERSION_NAME)
+        state.outcome == CheckOutcome.FAILED -> stringResource(R.string.settings_updates_failed)
+        else -> stringResource(R.string.settings_updates_version, BuildConfig.VERSION_NAME)
+    }
+
 /** What the detection row says under its title: what turning it on costs, or how the download is going. */
 @Composable
 private fun detectionStatus(
@@ -535,26 +556,6 @@ private fun detectionStatus(
 @Composable
 private fun accessLabel(allowed: Boolean): String =
     stringResource(if (allowed) R.string.detection_access_allowed else R.string.detection_access_needed)
-
-private fun hasSmsAccess(context: Context): Boolean =
-    ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
-
-private fun hasNotificationAccess(context: Context): Boolean =
-    NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
-
-/** Android's own page for Subsy's notification access; apps can't grant it themselves. */
-private fun openNotificationAccess(context: Context) {
-    val component = ComponentName(context, BankNotificationListener::class.java).flattenToString()
-    context.startActivity(
-        Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
-            .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, component),
-    )
-}
-
-private fun currencyName(code: String): String =
-    runCatching {
-        Currency.getInstance(code).getDisplayName(Locale.getDefault())
-    }.getOrDefault(code)
 
 @Preview(showBackground = true)
 @Composable
@@ -581,6 +582,8 @@ fun SettingsScreenPreview() {
             onSetAccountHolderName = {},
             onNavigateBack = {},
             onOpenCategories = {},
+            updateState = UpdateUiState(),
+            onUpdateClick = {},
         )
     }
 }

@@ -114,6 +114,35 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate5To6KeepsSubscriptionsAndPaymentsWithTheNewColumnsEmpty() {
+        helper.createDatabase(TEST_DB, 5).apply {
+            execSQL(
+                """
+                INSERT INTO subscriptions (id, name, category, amount, currency, billing_cycle, start_date, next_billing_date,
+                    is_free_trial, trial_end_date, status, cancellation_url, icon_name, color_hex, notes, created_at)
+                VALUES ('s1', 'Rent', 'OTHER', 25000.0, 'KES', 'MONTHLY', 1000, 2000, 0, NULL, 'ACTIVE', NULL, NULL, NULL, NULL, 1000)
+                """.trimIndent(),
+            )
+            execSQL(
+                "INSERT INTO payment_records (id, subscription_id, amount, currency, payment_date, status) " +
+                    "VALUES ('p1', 's1', 25000.0, 'KES', 1500, 'CONFIRMED')",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 6, true)
+
+        db.query("SELECT spend_category, bank_name, archived_at FROM subscriptions").use {
+            it.moveToFirst()
+            assertEquals(true, it.isNull(0) && it.isNull(1) && it.isNull(2))
+        }
+        db.query("SELECT COUNT(*) FROM payment_records").use {
+            it.moveToFirst()
+            assertEquals(1, it.getInt(0))
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

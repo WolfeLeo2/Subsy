@@ -160,7 +160,7 @@ fun SpottedCharges(
 }
 
 @Composable
-private fun SpottedChargeCard(
+internal fun SpottedChargeCard(
     charge: SpottedCharge,
     categoryKey: String?,
     customs: List<CustomCategory>,

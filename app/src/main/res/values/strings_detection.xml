@@ -45,15 +45,5 @@
     <string name="detection_holder">Your name on bank messages</string>
     <string name="detection_holder_supporting">Money to or from this name counts as moving your own money</string>
     <string name="detection_holder_none">Not set</string>
-    <string name="detection_holder_hint">As your bank prints it, for example JOHN KAMAU</string>
-    <!-- One-time screen after the mode chooser -->
-    <string name="detection_intro_title">Spot charges for you?</string>
-    <string name="detection_intro_body">Subsy can read bank and M-Pesa messages as they arrive and offer to log each charge with one tap. It stays off until you turn it on.</string>
-    <string name="detection_intro_reads">Reads new text messages and bank app notifications. Old messages are never read.</string>
-    <!-- %1$s download size, e.g. 98 MB -->
-    <string name="detection_intro_download">Downloads a %1$s reading model once, over Wi-Fi.</string>
-    <string name="detection_intro_private">Messages are read on this phone and never leave it.</string>
-    <string name="detection_intro_restricted">If Android says a setting is restricted, open Subsy\'s App info, tap the menu in the top corner, then Allow restricted settings.</string>
-    <string name="detection_intro_turn_on">Turn on</string>
-    <string name="detection_intro_not_now">Not now</string>
+    <string name="detection_holder_hint">As your bank prints it, for example JOHN SMITH</string>
 </resources>

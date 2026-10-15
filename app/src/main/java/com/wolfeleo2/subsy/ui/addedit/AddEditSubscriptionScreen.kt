@@ -69,6 +69,8 @@ import com.wolfeleo2.subsy.R
 import com.wolfeleo2.subsy.data.model.BillingCycleType
 import com.wolfeleo2.subsy.data.model.Category
 import com.wolfeleo2.subsy.data.model.PresetService
+import com.wolfeleo2.subsy.data.model.SpendCategory
+import com.wolfeleo2.subsy.data.model.TransactionType
 import com.wolfeleo2.subsy.data.repository.ExchangeRates
 import com.wolfeleo2.subsy.data.util.parseAmount
 import com.wolfeleo2.subsy.ui.components.ConnectedButtonGroup
@@ -128,6 +130,8 @@ fun AddEditSubscriptionScreen(
         onCategoryChange = viewModel::onCategoryChange,
         onCancellationUrlChange = viewModel::onCancellationUrlChange,
         onNotesChange = viewModel::onNotesChange,
+        onBankNameChange = viewModel::onBankNameChange,
+        onSpendCategoryChange = viewModel::onSpendCategoryChange,
         onApplyPreset = viewModel::applyPreset,
         onNavigateBack = onNavigateBack,
         snackbarHostState = snackbarHostState,
@@ -153,6 +157,8 @@ fun AddEditSubscriptionScreenContent(
     onCategoryChange: (Category) -> Unit,
     onCancellationUrlChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onBankNameChange: (String) -> Unit = {},
+    onSpendCategoryChange: (String?) -> Unit = {},
     onApplyPreset: (PresetService) -> Unit,
     onNavigateBack: () -> Unit,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
@@ -242,6 +248,8 @@ fun AddEditSubscriptionScreenContent(
                 onCategoryChange = onCategoryChange,
                 onCancellationUrlChange = onCancellationUrlChange,
                 onNotesChange = onNotesChange,
+                onBankNameChange = onBankNameChange,
+                onSpendCategoryChange = onSpendCategoryChange,
                 onOpenCatalog = { showPresetSheet = true },
                 modifier =
                     Modifier
@@ -268,6 +276,8 @@ private fun AddEditForm(
     onCategoryChange: (Category) -> Unit,
     onCancellationUrlChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onBankNameChange: (String) -> Unit,
+    onSpendCategoryChange: (String?) -> Unit,
     onOpenCatalog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -292,6 +302,8 @@ private fun AddEditForm(
         )
         SectionHeader(stringResource(R.string.addedit_section_category))
         CategorySection(selected = formState.category, onSelect = onCategoryChange)
+        SectionHeader(stringResource(R.string.addedit_section_payments))
+        PaymentsSection(formState, onBankNameChange, onSpendCategoryChange)
         SectionHeader(stringResource(R.string.addedit_section_link_notes))
         LinkAndNotesSection(formState, onCancellationUrlChange, onNotesChange)
     }
@@ -527,6 +539,56 @@ private fun CategorySection(
                         null
                     },
             )
+        }
+    }
+}
+
+/**
+ * For bills as much as subscriptions: the payee as bank messages print it, so detection matches payments to a
+ * subscription named "Rent", and where its payments count in All spending (rent under Housing & bills).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PaymentsSection(
+    formState: AddEditFormState,
+    onBankNameChange: (String) -> Unit,
+    onSpendCategoryChange: (String?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        OutlinedTextField(
+            value = formState.bankName,
+            onValueChange = onBankNameChange,
+            label = { Text(stringResource(R.string.addedit_bank_name)) },
+            supportingText = { Text(stringResource(R.string.addedit_bank_name_supporting)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Next),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        var expanded by remember { mutableStateOf(false) }
+        val selected = formState.spendCategory?.let { SpendCategory.fromKey(it) }
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+            OutlinedTextField(
+                value = (selected ?: SpendCategory.SUBSCRIPTIONS).label(),
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                label = { Text(stringResource(R.string.addedit_counts_under)) },
+                supportingText = { Text(stringResource(R.string.addedit_counts_under_supporting)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                (listOf(SpendCategory.SUBSCRIPTIONS) + SpendCategory.pickable(TransactionType.EXPENSE)).forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.label()) },
+                        onClick = {
+                            onSpendCategoryChange(category.takeUnless { it == SpendCategory.SUBSCRIPTIONS }?.name)
+                            expanded = false
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                    )
+                }
+            }
         }
     }
 }

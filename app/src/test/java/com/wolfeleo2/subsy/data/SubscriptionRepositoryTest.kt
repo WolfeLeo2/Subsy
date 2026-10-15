@@ -30,7 +30,8 @@ class SubscriptionRepositoryTest {
         /** Ids with payment records, which the real DAO reads from payment_records. */
         val paidIds = mutableSetOf<String>()
 
-        override fun getAllSubscriptions(): Flow<List<SubscriptionEntity>> = storageFlow.map { list -> list.filter { it.archivedAt == null } }
+        override fun getAllSubscriptions(): Flow<List<SubscriptionEntity>> =
+            storageFlow.map { list -> list.filter { it.archivedAt == null } }
 
         override fun getSubscriptionHistory(): Flow<List<SubscriptionEntity>> = storageFlow
 
@@ -99,6 +100,34 @@ class SubscriptionRepositoryTest {
         fakeDao = FakeSubscriptionDao()
         repository = DefaultSubscriptionRepository(fakeDao)
     }
+
+    @Test
+    fun deletingKeepsPaymentHistoryByArchiving() =
+        runTest {
+            fun sub(id: String) =
+                Subscription(
+                    id = id,
+                    name = id,
+                    category = Category.WORK_SAAS,
+                    amount = 20.0,
+                    startDate = 1000L,
+                    nextBillingDate = 2000L,
+                )
+            repository.insertSubscription(sub("paid"))
+            repository.insertSubscription(sub("never-paid"))
+            fakeDao.paidIds += "paid"
+
+            repository.deleteSubscriptionById("paid")
+            repository.deleteSubscriptionById("never-paid")
+
+            // Gone from the user's list either way...
+            assertTrue(repository.getAllSubscriptions().first().isEmpty())
+            // ...but the paid one stays for its payments, cancelled, so they keep counting in totals.
+            val history = repository.getSubscriptionHistory().first().single()
+            assertEquals("paid", history.id)
+            assertEquals(SubscriptionStatus.CANCELLED, history.status)
+            assertNotNull(history.archivedAt)
+        }
 
     @Test
     fun insertAndRetrieveSubscription() =

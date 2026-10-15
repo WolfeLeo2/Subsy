@@ -8,4 +8,42 @@
     <string name="mode_subscriptions_description">Subscriptions and free trials, with reminders before they renew.</string>
     <string name="mode_all_spending">All spending</string>
     <string name="mode_all_spending_description">Everything in Subscriptions, plus everyday expenses and income.</string>
+    <string name="onboarding_welcome_title">Every renewal, before it charges you</string>
+    <string name="onboarding_welcome_body">Subscriptions, trials and bills in one place, with reminders. Kept on this phone.</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_currency_title">Your currency</string>
+    <string name="onboarding_currency_body">Totals are shown in it. Charges in other currencies are converted.</string>
+    <string name="onboarding_demo_title">Never type a charge in again</string>
+    <string name="onboarding_demo_body">Subsy reads new bank and M-Pesa messages and offers to log each charge with one tap. Nothing is logged without a tap. Downloads %1$s once, over Wi-Fi.</string>
+    <string name="onboarding_demo_sms" translatable="false">Card ending 1234: USD 15.49 spent at NETFLIX.COM on 14/10/26 at 9:41 AM.</string>
+    <string name="onboarding_demo_sender" translatable="false">MYBANK</string>
+    <string name="onboarding_demo_merchant" translatable="false">Netflix</string>
+    <string name="onboarding_turn_on">Turn it on</string>
+    <string name="onboarding_turn_off">Turn it off</string>
+    <string name="onboarding_detection_on">Charge detection is on.</string>
+    <string name="onboarding_access_allowed">Allowed</string>
+    <string name="onboarding_maybe_later">Maybe later</string>
+    <string name="onboarding_privacy_title">Your messages stay here</string>
+    <string name="onboarding_privacy_body">Messages are read on this phone, with a model downloaded once. Nothing about them is sent anywhere. Only new messages are read, never old ones.</string>
+    <string name="onboarding_model_ready">Reading model ready</string>
+    <string name="onboarding_allow_sms">Allow text messages</string>
+    <string name="onboarding_notifications_title">Bank app notifications</string>
+    <string name="onboarding_notifications_body">Bank and wallet apps send alerts too. Allowing notification access lets Subsy read them the same way.</string>
+    <string name="onboarding_open_settings">Open settings</string>
+    <string name="onboarding_name_title">Your name on bank messages</string>
+    <string name="onboarding_name_body">Money to or from this name counts as moving your own money. You can skip this and add it later in Settings.</string>
+    <string name="onboarding_first_title">You\'re set</string>
+    <string name="onboarding_first_body_subscriptions">Add the first subscription you pay for and Subsy will remind you before it renews.</string>
+    <string name="onboarding_first_body_spending">Log an expense or add a subscription. Subsy keeps both in one place.</string>
+    <string name="onboarding_first_add_subscription">Add your first subscription</string>
+    <string name="onboarding_first_log_expense">Log your first expense</string>
+    <string name="onboarding_first_add_subscription_secondary">Add a subscription</string>
+    <string name="onboarding_first_later">I\'ll do it later</string>
+    <string name="onboarding_restricted_help">If the switch was greyed out or the prompt didn\'t appear, Android is protecting apps installed outside Play. Open App info, tap the menu in the top corner, then Allow restricted settings, and try again.</string>
+    <string name="onboarding_open_app_info">Open App info</string>
+    <string name="hint_dismiss">Got it</string>
+    <string name="hint_home_swipe">Swipe left to delete, right to pause or resume.</string>
+    <string name="hint_transactions_swipe">Swipe left to delete.</string>
+    <string name="hint_spending_month_budget">Tap a month to give it its own budget.</string>
 </resources>
